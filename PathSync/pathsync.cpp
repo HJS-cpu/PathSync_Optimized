@@ -69,30 +69,58 @@ HINSTANCE g_hInstance;
 #define REMOTE_ONLY_STR "Remote Only"
 #define LOCAL_ONLY_STR "Local Only"
 
-// OPTIMIZED: Fast first-char check before strcmp
+// OPTIMIZED: Enum-based action system for faster comparisons
+enum ActionType {
+  ACTION_TYPE_NONE = 0,
+  ACTION_TYPE_RECV,
+  ACTION_TYPE_RECV_CREATE,
+  ACTION_TYPE_RECV_DELETE,
+  ACTION_TYPE_SEND,
+  ACTION_TYPE_SEND_CREATE,
+  ACTION_TYPE_SEND_DELETE,
+  ACTION_TYPE_UNKNOWN
+};
+
+// Convert string to enum - only one comparison needed per string
+ActionType get_action_type(const char * str)
+{
+  if (!str || !str[0]) return ACTION_TYPE_NONE;
+  
+  switch (str[0])
+  {
+    case 'N': // "No Action"
+      return ACTION_TYPE_NONE;
+    case 'R': // "Remote->Local"
+      return ACTION_TYPE_RECV;
+    case 'L': // "Local->Remote"
+      return ACTION_TYPE_SEND;
+    case 'C': // "Create Local" or "Create Remote"
+      if (str[7] == 'L') return ACTION_TYPE_RECV_CREATE;
+      if (str[7] == 'R') return ACTION_TYPE_SEND_CREATE;
+      break;
+    case 'D': // "Delete Local" or "Delete Remote"
+      if (str[7] == 'L') return ACTION_TYPE_RECV_DELETE;
+      if (str[7] == 'R') return ACTION_TYPE_SEND_DELETE;
+      break;
+  }
+  return ACTION_TYPE_UNKNOWN;
+}
+
 bool action_is_none(const char * str)
 {
-  return str[0] == 'N' && strcmp(str, ACTION_NONE) == 0;
+  return get_action_type(str) == ACTION_TYPE_NONE;
 }
 
 bool action_is_recv(const char * str)
 {
-  // All recv actions start with 'R', 'C' (Create Local), or 'D' (Delete Local)
-  char c = str[0];
-  if (c == 'R') return strcmp(str, ACTION_RECV) == 0;
-  if (c == 'C') return strcmp(str, ACTION_RECV_CREATE) == 0;
-  if (c == 'D') return strcmp(str, ACTION_RECV_DELETE) == 0;
-  return false;
+  ActionType t = get_action_type(str);
+  return t == ACTION_TYPE_RECV || t == ACTION_TYPE_RECV_CREATE || t == ACTION_TYPE_RECV_DELETE;
 }
 
 bool action_is_send(const char * str)
 {
-  // All send actions start with 'L' (Local->Remote), 'C' (Create Remote), or 'D' (Delete Remote)
-  char c = str[0];
-  if (c == 'L') return strcmp(str, ACTION_SEND) == 0;
-  if (c == 'C') return strcmp(str, ACTION_SEND_CREATE) == 0;
-  if (c == 'D') return strcmp(str, ACTION_SEND_DELETE) == 0;
-  return false;
+  ActionType t = get_action_type(str);
+  return t == ACTION_TYPE_SEND || t == ACTION_TYPE_SEND_CREATE || t == ACTION_TYPE_SEND_DELETE;
 }
 
 #define COL_FILENAME  0
