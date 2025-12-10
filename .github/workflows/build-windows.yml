@@ -1,0 +1,36 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+    
+    - name: Build with MSVC
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+        mkdir build
+        cd build
+        rc /fo pathsync.res ..\PathSync\res.rc
+        cl /c /O2 /EHsc /DWIN32 /D_WINDOWS /I"..\WDL" ..\PathSync\pathsync.cpp ..\PathSync\fnmatch.cpp ..\WDL\WinGUI\wndsize.cpp ..\WDL\win32_utf8.c
+        link /OUT:PathSync.exe /SUBSYSTEM:WINDOWS pathsync.obj fnmatch.obj wndsize.obj win32_utf8.obj pathsync.res kernel32.lib user32.lib gdi32.lib shell32.lib comctl32.lib comdlg32.lib advapi32.lib ole32.lib
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PathSync-Windows
+        path: build/PathSync.exe
+        if-no-files-found: error
