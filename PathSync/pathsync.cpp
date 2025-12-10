@@ -1,4 +1,4 @@
-#define PATHSYNC_VER "v0.5-optimized"
+#define PATHSYNC_VER "v0.5 Optimized by HJS"
 
 /*
     PathSync - pathsync.cpp
