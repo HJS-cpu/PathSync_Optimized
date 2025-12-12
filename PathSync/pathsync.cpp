@@ -181,6 +181,54 @@ int g_numfilesindir;
 
 const int endislist[]={IDC_STATS,IDC_PATH1,IDC_PATH2,IDC_BROWSE1,IDC_BROWSE2,IDC_IGNORE_SIZE,IDC_IGNORE_DATE,IDC_IGNORE_MISSLOCAL,IDC_IGNORE_MISSREMOTE,IDC_DEFBEHAVIOR,IDC_LOG,IDC_LOGPATH,IDC_LOGBROWSE, IDC_LOCAL_LABEL, IDC_REMOTE_LABEL, IDC_DEFACTIONLABEL, IDC_LOGFILENAMELABEL, IDC_IGNORE_LABEL, IDC_INCLUDE_LABEL, IDC_INCLUDE_FILES, IDC_MASKHELP, IDC_SYNC_FOLDERS};
 
+// OPTIMIZED: Long path support (>260 chars) via \\?\ prefix
+// This allows paths up to 32,767 characters without requiring registry changes
+void make_long_path(WDL_String *dest, const char* path)
+{
+  if (!path || !path[0]) {
+    dest->Set("");
+    return;
+  }
+  
+  // Only add prefix for absolute paths (e.g., C:\... or \\server\...)
+  // Also check if prefix is already present
+  if (path[0] == '\\' && path[1] == '\\' && path[2] == '?' && path[3] == '\\')
+  {
+    // Already has long path prefix
+    dest->Set(path);
+  }
+  else if (path[0] && path[1] == ':' && (path[2] == '\\' || path[2] == '/'))
+  {
+    // Local absolute path like C:\...
+    dest->Set("\\\\?\\");
+    dest->Append(path);
+    
+    // Convert forward slashes to backslashes (required for \\?\ prefix)
+    char *p = dest->Get() + 4; // Skip the prefix
+    while (*p) {
+      if (*p == '/') *p = '\\';
+      p++;
+    }
+  }
+  else if (path[0] == '\\' && path[1] == '\\')
+  {
+    // UNC path like \\server\share\...
+    dest->Set("\\\\?\\UNC\\");
+    dest->Append(path + 2); // Skip the leading \\
+    
+    // Convert forward slashes to backslashes
+    char *p = dest->Get() + 8; // Skip \\?\UNC\
+    while (*p) {
+      if (*p == '/') *p = '\\';
+      p++;
+    }
+  }
+  else
+  {
+    // Relative path or unknown format - use as-is
+    dest->Set(path);
+  }
+}
 
 bool isDirectory(const char * filename)
 {
@@ -1857,7 +1905,11 @@ class fileCopier
       m_relfn.Set(relfn);
       
 #define BIG_BUFSIZE (1024*1024)
-      m_srcFile = new WDL_FileRead(src,1,BIG_BUFSIZE,8);
+      // OPTIMIZED: Long path support
+      WDL_String srcLong;
+      make_long_path(&srcLong, src);
+      
+      m_srcFile = new WDL_FileRead(srcLong.Get(),1,BIG_BUFSIZE,8);
       if (!m_srcFile->IsOpen())
       {
         delete m_srcFile;
@@ -1873,14 +1925,18 @@ class fileCopier
 
       createdir(dest);      
 
-      m_tmpdestfn.Set(dest);
+      // OPTIMIZED: Long path support for destination
+      WDL_String destLong;
+      make_long_path(&destLong, dest);
+      
+      m_tmpdestfn.Set(destLong.Get());
       m_tmpdestfn.Append(".PSYN_TMP");
       m_dstFile = new WDL_FileWrite(m_tmpdestfn.Get(),0,BIG_BUFSIZE); // sync writes
 
       if (!m_dstFile->IsOpen())
       {
         WDL_String tmp("Error opening tmpdest: ");
-        tmp.Append(m_tmpdestfn.Get());
+        tmp.Append(dest);
 
         LogMessage(tmp.Get());
         SendDlgItemMessage(hwndParent,IDC_LIST1,LB_ADDSTRING,0,(LPARAM)tmp.Get());
@@ -1898,14 +1954,42 @@ class fileCopier
     }
 
     // AD: Refactored directory creation into it's own method for reuse.
+    // OPTIMIZED: Long path support
     BOOL createdir(char * dest)
     {
       BOOL success = FALSE;
-      WDL_String tmp(dest);
+      WDL_String longPath;
+      make_long_path(&longPath, dest);
+      WDL_String tmp(longPath.Get());
       char *p=tmp.Get();
       if (*p) 
       {
-        p = skip_root(tmp.Get());
+        // For long paths, skip the \\?\ prefix
+        if (p[0] == '\\' && p[1] == '\\' && p[2] == '?' && p[3] == '\\')
+        {
+          p += 4;
+          // For UNC paths (\\?\UNC\), skip further
+          if (p[0] == 'U' && p[1] == 'N' && p[2] == 'C' && p[3] == '\\')
+          {
+            p += 4;
+            // Skip server and share
+            while (*p && *p != '\\') p++;
+            if (*p) p++;
+            while (*p && *p != '\\') p++;
+            if (*p) p++;
+          }
+          else
+          {
+            // Skip drive letter (C:)
+            if (p[0] && p[1] == ':' && p[2] == '\\')
+              p += 3;
+          }
+        }
+        else
+        {
+          p = skip_root(tmp.Get());
+        }
+        
         if (p) for (;;)
         {
           while (*p && *p != '\\' && *p != '/') p++;
@@ -1913,7 +1997,7 @@ class fileCopier
 
           char c=*p;
           *p=0;
-          success &= CreateDirectory(tmp.Get(),NULL);
+          success &= CreateDirectoryA(tmp.Get(),NULL);
           *p++ = c;
         }
       }
@@ -1990,20 +2074,28 @@ class fileCopier
 
         bool fileExists;
 
+        // OPTIMIZED: Long path support for file existence check
+        WDL_String fulldestLong;
+        make_long_path(&fulldestLong, m_fulldestfn.Get());
+        
         {
-          WDL_FileRead hFE(m_fulldestfn.Get(),0);
+          WDL_FileRead hFE(fulldestLong.Get(),0);
           fileExists = hFE.IsOpen();
         }
 
-        if (!fileExists || MoveFile(m_fulldestfn.Get(),destSave.Get()))
+        // OPTIMIZED: Long path support for MoveFile/DeleteFile
+        WDL_String destSaveLong;
+        make_long_path(&destSaveLong, destSave.Get());
+        
+        if (!fileExists || MoveFileA(fulldestLong.Get(),destSaveLong.Get()))
         {
-          if (MoveFile(m_tmpdestfn.Get(),m_fulldestfn.Get()))
+          if (MoveFileA(m_tmpdestfn.Get(),fulldestLong.Get()))
           {
-            if (fileExists) DeleteFile(destSave.Get());
+            if (fileExists) DeleteFileA(destSaveLong.Get());
           }
           else 
           {
-            if (fileExists) MoveFile(destSave.Get(),m_fulldestfn.Get()); // try and restore old
+            if (fileExists) MoveFileA(destSaveLong.Get(),fulldestLong.Get()); // try and restore old
             err=2;
           }
         }
@@ -2042,7 +2134,7 @@ class fileCopier
       if (m_dstFile) 
       {
         delete m_dstFile;
-        DeleteFile(m_tmpdestfn.Get());
+        DeleteFileA(m_tmpdestfn.Get());
       }
       delete m_srcFile;
       
@@ -2255,9 +2347,13 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 SetDlgItemText(hwndDlg,IDC_DEST,gs.Get());
 
                 // AD: Test for file or folder is to be deleted.
+                // OPTIMIZED: Long path support
+                WDL_String gsLong;
+                make_long_path(&gsLong, gs.Get());
+                
                 if (isDirectory(filename))
                 {
-                  if (!RemoveDirectory(gs.Get()))
+                  if (!RemoveDirectoryA(gsLong.Get()))
                   {
                     WDL_String news("Error removing");
                     news.Append(isRecv ? " local folder: " : " remote folder: ");
@@ -2276,7 +2372,7 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
                 else
                 {
-                  if (!DeleteFile(gs.Get()))
+                  if (!DeleteFileA(gsLong.Get()))
                   {
                     WDL_String news("Error removing ");
                     news.Append(isRecv ? "local file: " : "remote file: ");
