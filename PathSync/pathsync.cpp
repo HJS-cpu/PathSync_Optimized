@@ -171,6 +171,7 @@ char g_loadsettingsfile[2048];
 bool g_autorun = false;
 bool g_systray = false;
 bool g_intray = false;
+bool g_start_maximized = false;
 HWND g_copydlg = NULL;
 HWND g_dlg = NULL;
 int g_lasttraypercent = -1;
@@ -681,6 +682,9 @@ void load_window_position(HWND hwndDlg, char *fn)
   int height = GetPrivateProfileInt("window", "height", -1, fn);
   int maximized = GetPrivateProfileInt("window", "maximized", 0, fn);
   
+  /* Set global flag for main() to use */
+  g_start_maximized = (maximized != 0);
+  
   /* Only restore if we have valid saved values */
   if (left != -1 && top != -1 && width > 0 && height > 0)
   {
@@ -689,15 +693,7 @@ void load_window_position(HWND hwndDlg, char *fn)
     HMONITOR hMon = MonitorFromRect(&rc, MONITOR_DEFAULTTONULL);
     if (hMon != NULL)
     {
-      WINDOWPLACEMENT wp;
-      wp.length = sizeof(WINDOWPLACEMENT);
-      GetWindowPlacement(hwndDlg, &wp);
-      wp.rcNormalPosition.left = left;
-      wp.rcNormalPosition.top = top;
-      wp.rcNormalPosition.right = left + width;
-      wp.rcNormalPosition.bottom = top + height;
-      wp.showCmd = maximized ? SW_MAXIMIZE : SW_SHOWNORMAL;
-      SetWindowPlacement(hwndDlg, &wp);
+      SetWindowPos(hwndDlg, NULL, left, top, width, height, SWP_NOZORDER);
     }
   }
 }
@@ -1909,7 +1905,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 
   // fg, 4/20/2005, changed from DialogBox to CreateDialogBox + messagequeue in order to be able to start the dialog hidden
   g_dlg = CreateDialog(hInstance,MAKEINTRESOURCE(IDD_DIALOG1),NULL,mainDlgProc);
-  if (!g_systray) { ShowWindow(g_dlg, SW_NORMAL); }
+  if (!g_systray) { ShowWindow(g_dlg, g_start_maximized ? SW_MAXIMIZE : SW_NORMAL); }
   else g_intray = true;
 
   MSG msg;
