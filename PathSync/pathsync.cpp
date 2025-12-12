@@ -651,6 +651,53 @@ void save_settings(HWND hwndDlg, char *sec, char *fn)
   ::WritePrivateProfileString(sec, "syncfolders", path, fn);
 }
 
+/* OPTIMIZED: Save window position and size to INI file */
+void save_window_position(HWND hwndDlg, char *fn)
+{
+  WINDOWPLACEMENT wp;
+  wp.length = sizeof(WINDOWPLACEMENT);
+  if (GetWindowPlacement(hwndDlg, &wp))
+  {
+    char buf[32];
+    wsprintf(buf, "%d", wp.rcNormalPosition.left);
+    WritePrivateProfileString("window", "left", buf, fn);
+    wsprintf(buf, "%d", wp.rcNormalPosition.top);
+    WritePrivateProfileString("window", "top", buf, fn);
+    wsprintf(buf, "%d", wp.rcNormalPosition.right - wp.rcNormalPosition.left);
+    WritePrivateProfileString("window", "width", buf, fn);
+    wsprintf(buf, "%d", wp.rcNormalPosition.bottom - wp.rcNormalPosition.top);
+    WritePrivateProfileString("window", "height", buf, fn);
+    wsprintf(buf, "%d", (wp.showCmd == SW_MAXIMIZE) ? 1 : 0);
+    WritePrivateProfileString("window", "maximized", buf, fn);
+  }
+}
+
+/* OPTIMIZED: Load window position and size from INI file */
+void load_window_position(HWND hwndDlg, char *fn)
+{
+  int left = GetPrivateProfileInt("window", "left", -1, fn);
+  int top = GetPrivateProfileInt("window", "top", -1, fn);
+  int width = GetPrivateProfileInt("window", "width", -1, fn);
+  int height = GetPrivateProfileInt("window", "height", -1, fn);
+  int maximized = GetPrivateProfileInt("window", "maximized", 0, fn);
+  
+  /* Only restore if we have valid saved values */
+  if (left != -1 && top != -1 && width > 0 && height > 0)
+  {
+    /* Validate that window is at least partially visible on some monitor */
+    RECT rc = { left, top, left + width, top + height };
+    HMONITOR hMon = MonitorFromRect(&rc, MONITOR_DEFAULTTONULL);
+    if (hMon != NULL)
+    {
+      SetWindowPos(hwndDlg, NULL, left, top, width, height, SWP_NOZORDER);
+      if (maximized)
+      {
+        ShowWindow(hwndDlg, SW_MAXIMIZE);
+      }
+    }
+  }
+}
+
 int CALLBACK MyBrowseCallbackProc(HWND hWnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
 {
    if (uMsg == BFFM_INITIALIZED)
@@ -781,6 +828,8 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         g_loadsettingsfile[0]=0;
  
         EnableOrDisableLoggingControls(hwndDlg);
+        
+        load_window_position(hwndDlg, m_inifile);
     
         if (g_autorun)
         {
@@ -830,6 +879,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0;
     case WM_DESTROY:
       systray_del(hwndDlg, 0);
+      save_window_position(hwndDlg, m_inifile);
       save_settings(hwndDlg,"config",m_inifile);
     return 0;
     case WM_SYSTRAY: 
