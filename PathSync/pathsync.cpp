@@ -181,8 +181,15 @@ int g_numfilesindir;
 
 const int endislist[]={IDC_STATS,IDC_PATH1,IDC_PATH2,IDC_BROWSE1,IDC_BROWSE2,IDC_IGNORE_SIZE,IDC_IGNORE_DATE,IDC_IGNORE_MISSLOCAL,IDC_IGNORE_MISSREMOTE,IDC_DEFBEHAVIOR,IDC_LOG,IDC_LOGPATH,IDC_LOGBROWSE, IDC_LOCAL_LABEL, IDC_REMOTE_LABEL, IDC_DEFACTIONLABEL, IDC_LOGFILENAMELABEL, IDC_IGNORE_LABEL, IDC_INCLUDE_LABEL, IDC_INCLUDE_FILES, IDC_MASKHELP, IDC_SYNC_FOLDERS};
 
-// OPTIMIZED: Long path support (>260 chars) via \\?\ prefix
-// This allows paths up to 32,767 characters without requiring registry changes
+bool isDirectory(const char * filename)
+{
+  if (!filename || !filename[0]) return false;
+  char c = filename[strlen(filename)-1];
+  return c == '\\' || c == '/';
+}
+
+/* OPTIMIZED: Long path support (>260 chars) via the extended path prefix.
+   This allows paths up to 32,767 characters without requiring registry changes. */
 void make_long_path(WDL_String *dest, const char* path)
 {
   if (!path || !path[0]) {
@@ -190,21 +197,19 @@ void make_long_path(WDL_String *dest, const char* path)
     return;
   }
   
-  // Only add prefix for absolute paths (e.g., C:\... or \\server\...)
-  // Also check if prefix is already present
+  /* Check if prefix is already present */
   if (path[0] == '\\' && path[1] == '\\' && path[2] == '?' && path[3] == '\\')
   {
-    // Already has long path prefix
     dest->Set(path);
   }
   else if (path[0] && path[1] == ':' && (path[2] == '\\' || path[2] == '/'))
   {
-    // Local absolute path like C:\...
+    /* Local absolute path like C:\ */
     dest->Set("\\\\?\\");
     dest->Append(path);
     
-    // Convert forward slashes to backslashes (required for \\?\ prefix)
-    char *p = dest->Get() + 4; // Skip the prefix
+    /* Convert forward slashes to backslashes */
+    char *p = dest->Get() + 4;
     while (*p) {
       if (*p == '/') *p = '\\';
       p++;
@@ -212,12 +217,12 @@ void make_long_path(WDL_String *dest, const char* path)
   }
   else if (path[0] == '\\' && path[1] == '\\')
   {
-    // UNC path like \\server\share\...
+    /* UNC path like \\server\share */
     dest->Set("\\\\?\\UNC\\");
-    dest->Append(path + 2); // Skip the leading \\
+    dest->Append(path + 2);
     
-    // Convert forward slashes to backslashes
-    char *p = dest->Get() + 8; // Skip \\?\UNC\
+    /* Convert forward slashes to backslashes */
+    char *p = dest->Get() + 8;
     while (*p) {
       if (*p == '/') *p = '\\';
       p++;
@@ -225,16 +230,8 @@ void make_long_path(WDL_String *dest, const char* path)
   }
   else
   {
-    // Relative path or unknown format - use as-is
     dest->Set(path);
   }
-}
-
-bool isDirectory(const char * filename)
-{
-  if (!filename || !filename[0]) return false;
-  char c = filename[strlen(filename)-1];
-  return c == '\\' || c == '/';
 }
 
 const char *stristr(const char *a, const char *b)
