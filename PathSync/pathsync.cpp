@@ -689,11 +689,15 @@ void load_window_position(HWND hwndDlg, char *fn)
     HMONITOR hMon = MonitorFromRect(&rc, MONITOR_DEFAULTTONULL);
     if (hMon != NULL)
     {
-      SetWindowPos(hwndDlg, NULL, left, top, width, height, SWP_NOZORDER);
-      if (maximized)
-      {
-        ShowWindow(hwndDlg, SW_MAXIMIZE);
-      }
+      WINDOWPLACEMENT wp;
+      wp.length = sizeof(WINDOWPLACEMENT);
+      GetWindowPlacement(hwndDlg, &wp);
+      wp.rcNormalPosition.left = left;
+      wp.rcNormalPosition.top = top;
+      wp.rcNormalPosition.right = left + width;
+      wp.rcNormalPosition.bottom = top + height;
+      wp.showCmd = maximized ? SW_MAXIMIZE : SW_SHOWNORMAL;
+      SetWindowPlacement(hwndDlg, &wp);
     }
   }
 }
