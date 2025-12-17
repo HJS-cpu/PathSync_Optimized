@@ -1,4 +1,4 @@
-# PathSync v0.5.1 Optimized
+# PathSync Optimized
 
 [![Build Windows EXE](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml/badge.svg)](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml)
 [![Live Website](https://img.shields.io/badge/Live_Website-hjs.bplaced.net-brightgreen)](http://hjs.bplaced.net/)
@@ -9,7 +9,7 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 
 ---
 
-## ✨ What's New in v0.5
+## ✨ What's New in v0.5.1
 
 ### 🚀 Performance Optimizations
 
