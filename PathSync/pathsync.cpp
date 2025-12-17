@@ -834,6 +834,21 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         
         /* OPTIMIZED: Enable drag & drop for folder paths */
         DragAcceptFiles(hwndDlg, TRUE);
+        
+        /* OPTIMIZED: Allow drag & drop even when running with elevated privileges (UIPI bypass) */
+        /* This is needed when PathSync is launched from a launcher app running as admin */
+        typedef BOOL (WINAPI *ChangeWindowMessageFilterFunc)(UINT, DWORD);
+        HMODULE hUser32 = GetModuleHandle("user32.dll");
+        if (hUser32)
+        {
+          ChangeWindowMessageFilterFunc pChangeWindowMessageFilter = 
+            (ChangeWindowMessageFilterFunc)GetProcAddress(hUser32, "ChangeWindowMessageFilter");
+          if (pChangeWindowMessageFilter)
+          {
+            pChangeWindowMessageFilter(WM_DROPFILES, 1); /* MSGFLT_ADD = 1 */
+            pChangeWindowMessageFilter(0x0049, 1);       /* WM_COPYGLOBALDATA = 0x0049 */
+          }
+        }
     
         if (g_autorun)
         {
