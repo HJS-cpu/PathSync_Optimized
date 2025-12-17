@@ -1,6 +1,7 @@
 # PathSync v0.5 Optimized
 
 [![Build Windows EXE](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml/badge.svg)](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml)
+[![Live Website](https://img.shields.io/badge/Live_Website-hjs.bplaced.net-brightgreen)](http://hjs.bplaced.net/)
 
 A modernized and optimized fork of **PathSync**, the lightweight file synchronization tool originally developed by Cockos Incorporated.
 
@@ -33,8 +34,12 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 
 ---
 
-## 📥 Download
+## 📥 Download & Links
 
+### 🌐 **Live Website**
+**[➡️ Visit Live Website](http://hjs.bplaced.net/)**
+
+### 💾 **Desktop Application**
 **[⬇️ Download Latest Release](https://github.com/HJS-cpu/PathSync_Optimized/releases/latest)**
 
 Or download from the [Actions](https://github.com/HJS-cpu/PathSync_Optimized/actions) tab (latest build artifacts).
@@ -111,30 +116,3 @@ Every push triggers an automatic build. Download artifacts from the [Actions](ht
 ```batch
 cd PathSync
 cl /O2 /EHsc pathsync.cpp fnmatch.cpp wndsize.cpp win32_utf8.c /link /OUT:PathSync.exe
-```
-
----
-
-## 🙏 Credits
-
-- **Original PathSync** by [Cockos Incorporated](https://www.cockos.com/)
-- **Optimizations** by HJS (2025)
-
----
-
-## 📄 License
-
-Based on the original PathSync source code by Cockos Incorporated.
-
----
-
-## 📝 Changelog
-
-### v0.5 (2025)
-- Added: Long path support (>260 characters)
-- Added: Window position/size persistence
-- Added: Modern Windows visual styles
-- Added: Segoe UI font
-- Improved: ListView rendering performance (5-10x faster)
-- Improved: File copy buffer (1MB, 20-50% faster)
-- Improved: Action processing with enum-based system
