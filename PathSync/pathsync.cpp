@@ -941,17 +941,26 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 buf[len+1] = 0;
               }
               
-              /* Fill Local path first if empty, otherwise fill Remote */
-              char existing[2048];
-              GetDlgItemText(hwndDlg, IDC_PATH1, existing, sizeof(existing));
-              if (existing[0] == 0)
-              {
-                SetDlgItemText(hwndDlg, IDC_PATH1, buf);
-              }
-              else
-              {
-                SetDlgItemText(hwndDlg, IDC_PATH2, buf);
-              }
+              /* Determine target field based on drop position */
+              POINT pt;
+              DragQueryPoint(hDrop, &pt);
+              
+              RECT rcLocal, rcRemote;
+              GetWindowRect(GetDlgItem(hwndDlg, IDC_PATH1), &rcLocal);
+              GetWindowRect(GetDlgItem(hwndDlg, IDC_PATH2), &rcRemote);
+              
+              /* Convert to client coordinates */
+              POINT ptLocal = { rcLocal.left, rcLocal.top };
+              POINT ptRemote = { rcRemote.left, rcRemote.top };
+              ScreenToClient(hwndDlg, &ptLocal);
+              ScreenToClient(hwndDlg, &ptRemote);
+              
+              /* Drop on left half -> Local, right half -> Remote */
+              RECT rcClient;
+              GetClientRect(hwndDlg, &rcClient);
+              int targetField = (pt.x < rcClient.right / 2) ? IDC_PATH1 : IDC_PATH2;
+              
+              SetDlgItemText(hwndDlg, targetField, buf);
               stopAnalyzeAndClearList(hwndDlg);
             }
           }
