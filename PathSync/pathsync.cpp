@@ -181,10 +181,6 @@ DWORD g_throttle_sttime;
 WDL_INT64 g_throttle_bytes;
 int g_numfilesindir;
 
-/* OPTIMIZED: Subclass data for drag & drop on path fields */
-WNDPROC g_origPathProc1 = NULL;
-WNDPROC g_origPathProc2 = NULL;
-
 const int endislist[]={IDC_STATS,IDC_PATH1,IDC_PATH2,IDC_BROWSE1,IDC_BROWSE2,IDC_IGNORE_SIZE,IDC_IGNORE_DATE,IDC_IGNORE_MISSLOCAL,IDC_IGNORE_MISSREMOTE,IDC_DEFBEHAVIOR,IDC_LOG,IDC_LOGPATH,IDC_LOGBROWSE, IDC_LOCAL_LABEL, IDC_REMOTE_LABEL, IDC_DEFACTIONLABEL, IDC_LOGFILENAMELABEL, IDC_IGNORE_LABEL, IDC_INCLUDE_LABEL, IDC_INCLUDE_FILES, IDC_MASKHELP, IDC_SYNC_FOLDERS};
 
 bool isDirectory(const char * filename)
@@ -747,62 +743,6 @@ void cancel_analysis(HWND dlg)
   if (g_autorun) PostQuitMessage(1);
 }
 
-/* OPTIMIZED: Subclass procedure for path edit fields to handle drag & drop */
-LRESULT CALLBACK PathFieldDropProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-  /* Determine which field this is and get original proc */
-  WNDPROC origProc = NULL;
-  int fieldId = GetDlgCtrlID(hwnd);
-  if (fieldId == IDC_PATH1) origProc = g_origPathProc1;
-  else if (fieldId == IDC_PATH2) origProc = g_origPathProc2;
-  
-  if (uMsg == WM_DROPFILES)
-  {
-    HDROP hDrop = (HDROP)wParam;
-    char buf[2048];
-    if (DragQueryFile(hDrop, 0, buf, sizeof(buf)) > 0)
-    {
-      /* Check if it's a .pss file - let parent handle it */
-      if (strlen(buf) > 4 && !stricmp(buf + strlen(buf) - 4, ".pss"))
-      {
-        /* Forward to parent dialog */
-        HWND hwndParent = GetParent(hwnd);
-        if (hwndParent)
-        {
-          SendMessage(hwndParent, WM_DROPFILES, wParam, lParam);
-        }
-        return 0;
-      }
-      
-      /* Check if it's a folder */
-      DWORD attr = GetFileAttributesA(buf);
-      if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY))
-      {
-        /* Add trailing backslash if missing */
-        int len = strlen(buf);
-        if (len > 0 && buf[len-1] != '\\' && buf[len-1] != '/')
-        {
-          buf[len] = '\\';
-          buf[len+1] = 0;
-        }
-        
-        /* Set text in this field */
-        SetWindowTextA(hwnd, buf);
-        
-        /* Clear analysis */
-        HWND hwndParent = GetParent(hwnd);
-        if (hwndParent) stopAnalyzeAndClearList(hwndParent);
-      }
-    }
-    DragFinish(hDrop);
-    return 0;
-  }
-  
-  /* Call original procedure */
-  if (origProc) return CallWindowProc(origProc, hwnd, uMsg, wParam, lParam);
-  return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
-
 BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
   static WDL_WndSizer resizer;
@@ -892,13 +832,8 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         
         load_window_position(hwndDlg, m_inifile);
         
-        /* OPTIMIZED: Enable drag & drop only for path input fields */
-        HWND hwndPath1 = GetDlgItem(hwndDlg, IDC_PATH1);
-        HWND hwndPath2 = GetDlgItem(hwndDlg, IDC_PATH2);
-        g_origPathProc1 = (WNDPROC)(LONG_PTR)SetWindowLong(hwndPath1, GWL_WNDPROC, (LONG)(LONG_PTR)PathFieldDropProc);
-        g_origPathProc2 = (WNDPROC)(LONG_PTR)SetWindowLong(hwndPath2, GWL_WNDPROC, (LONG)(LONG_PTR)PathFieldDropProc);
-        DragAcceptFiles(hwndPath1, TRUE);
-        DragAcceptFiles(hwndPath2, TRUE);
+        /* OPTIMIZED: Enable drag & drop for folder paths */
+        DragAcceptFiles(hwndDlg, TRUE);
     
         if (g_autorun)
         {
@@ -979,17 +914,59 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0;
     case WM_DROPFILES:
       {
-        /* This handler now only processes .pss files forwarded from path fields */
         HDROP hDrop=(HDROP)wParam;
         char buf[2048];
         if (DragQueryFile(hDrop,0,buf,sizeof(buf))>0)
         {
           if (strlen(buf) > 4 && !stricmp(buf+strlen(buf)-4,".pss"))
           {
+            /* Existing behavior: Load .pss settings file */
             stopAnalyzeAndClearList(hwndDlg);
             if (load_settings(hwndDlg,"pathsync settings",buf) > 0)
             {
               set_current_settings_file(hwndDlg,buf);
+            }
+          }
+          else
+          {
+            /* OPTIMIZED: Drag & drop folder paths */
+            DWORD attr = GetFileAttributesA(buf);
+            if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY))
+            {
+              /* It's a folder - add trailing backslash if missing */
+              int len = strlen(buf);
+              if (len > 0 && buf[len-1] != '\\' && buf[len-1] != '/')
+              {
+                buf[len] = '\\';
+                buf[len+1] = 0;
+              }
+              
+              /* Get drop position in screen coordinates */
+              POINT pt;
+              DragQueryPoint(hDrop, &pt);
+              ClientToScreen(hwndDlg, &pt);
+              
+              /* Check if drop is on Local or Remote input field */
+              RECT rcLocal, rcRemote;
+              GetWindowRect(GetDlgItem(hwndDlg, IDC_PATH1), &rcLocal);
+              GetWindowRect(GetDlgItem(hwndDlg, IDC_PATH2), &rcRemote);
+              
+              int targetField = 0;
+              if (PtInRect(&rcLocal, pt))
+              {
+                targetField = IDC_PATH1;
+              }
+              else if (PtInRect(&rcRemote, pt))
+              {
+                targetField = IDC_PATH2;
+              }
+              
+              /* Only accept drop if it's directly on a path field */
+              if (targetField != 0)
+              {
+                SetDlgItemText(hwndDlg, targetField, buf);
+                stopAnalyzeAndClearList(hwndDlg);
+              }
             }
           }
         }
