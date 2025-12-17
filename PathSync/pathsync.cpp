@@ -895,8 +895,8 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         /* OPTIMIZED: Enable drag & drop only for path input fields */
         HWND hwndPath1 = GetDlgItem(hwndDlg, IDC_PATH1);
         HWND hwndPath2 = GetDlgItem(hwndDlg, IDC_PATH2);
-        g_origPathProc1 = (WNDPROC)SetWindowLongPtr(hwndPath1, GWLP_WNDPROC, (LONG_PTR)PathFieldDropProc);
-        g_origPathProc2 = (WNDPROC)SetWindowLongPtr(hwndPath2, GWLP_WNDPROC, (LONG_PTR)PathFieldDropProc);
+        g_origPathProc1 = (WNDPROC)(LONG_PTR)SetWindowLong(hwndPath1, GWL_WNDPROC, (LONG)(LONG_PTR)PathFieldDropProc);
+        g_origPathProc2 = (WNDPROC)(LONG_PTR)SetWindowLong(hwndPath2, GWL_WNDPROC, (LONG)(LONG_PTR)PathFieldDropProc);
         DragAcceptFiles(hwndPath1, TRUE);
         DragAcceptFiles(hwndPath2, TRUE);
     
