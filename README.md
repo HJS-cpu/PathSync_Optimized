@@ -9,7 +9,7 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 
 ---
 
-## ✨ What's New in v0.5.1
+## ✨ What's New
 
 ### 🚀 Performance Optimizations
 
@@ -144,10 +144,12 @@ Based on the original PathSync source code by Cockos Incorporated.
 
 ## 📝 Changelog
 
+### v0.5.1 (17.12.2025)
+- Added: Drag & Drop for folder paths
+  
 ### v0.5 (2025)
 - Added: Long path support (>260 characters)
 - Added: Window position/size persistence
-- Added: Drag & Drop for folder paths
 - Added: Modern Windows visual styles
 - Added: Segoe UI font
 - Improved: ListView rendering performance (5-10x faster)
