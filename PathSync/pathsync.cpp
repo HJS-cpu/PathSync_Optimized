@@ -1,4 +1,4 @@
-#define PATHSYNC_VER "v0.5 Optimized by HJS"
+#define PATHSYNC_VER "v0.5.1 Optimized"
 
 /*
     PathSync - pathsync.cpp
@@ -1038,7 +1038,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
           }
         break;
         case IDM_ABOUT:
-          MessageBox(hwndDlg,"PathSync " PATHSYNC_VER "\r\nCopyright (C) 2004-2007, Cockos Incorporated and others\r\n"            
+          MessageBox(hwndDlg,"PathSync " PATHSYNC_VER " by HJS\r\nCopyright (C) 2004-2025, Cockos Incorporated and others\r\n"    
             "\r\n"
                     "PathSync is free software; you can redistribute it and/or modify\r\n"
                         "it under the terms of the GNU General Public License as published by\r\n"
