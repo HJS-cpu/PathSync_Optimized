@@ -30,6 +30,7 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <shlobj.h>
+#include <shellapi.h>
 #include <stdio.h>
 #include <search.h>
 #include <stdlib.h>
@@ -830,6 +831,9 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         EnableOrDisableLoggingControls(hwndDlg);
         
         load_window_position(hwndDlg, m_inifile);
+        
+        /* OPTIMIZED: Enable drag & drop for folder paths */
+        DragAcceptFiles(hwndDlg, TRUE);
     
         if (g_autorun)
         {
@@ -912,15 +916,44 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
       {
         HDROP hDrop=(HDROP)wParam;
         char buf[2048];
-        if (DragQueryFile(hDrop,0,buf,sizeof(buf))>4)
+        if (DragQueryFile(hDrop,0,buf,sizeof(buf))>0)
         {
-          if (!stricmp(buf+strlen(buf)-4,".pss"))
+          if (strlen(buf) > 4 && !stricmp(buf+strlen(buf)-4,".pss"))
           {
-              stopAnalyzeAndClearList(hwndDlg);
-              if (load_settings(hwndDlg,"pathsync settings",buf) > 0)
+            /* Existing behavior: Load .pss settings file */
+            stopAnalyzeAndClearList(hwndDlg);
+            if (load_settings(hwndDlg,"pathsync settings",buf) > 0)
+            {
+              set_current_settings_file(hwndDlg,buf);
+            }
+          }
+          else
+          {
+            /* OPTIMIZED: Drag & drop folder paths */
+            DWORD attr = GetFileAttributesA(buf);
+            if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY))
+            {
+              /* It's a folder - add trailing backslash if missing */
+              int len = strlen(buf);
+              if (len > 0 && buf[len-1] != '\\' && buf[len-1] != '/')
               {
-                set_current_settings_file(hwndDlg,buf);
+                buf[len] = '\\';
+                buf[len+1] = 0;
               }
+              
+              /* Fill Local path first if empty, otherwise fill Remote */
+              char existing[2048];
+              GetDlgItemText(hwndDlg, IDC_PATH1, existing, sizeof(existing));
+              if (existing[0] == 0)
+              {
+                SetDlgItemText(hwndDlg, IDC_PATH1, buf);
+              }
+              else
+              {
+                SetDlgItemText(hwndDlg, IDC_PATH2, buf);
+              }
+              stopAnalyzeAndClearList(hwndDlg);
+            }
           }
         }
         DragFinish(hDrop);
