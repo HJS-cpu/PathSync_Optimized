@@ -941,27 +941,32 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 buf[len+1] = 0;
               }
               
-              /* Determine target field based on drop position */
+              /* Get drop position in screen coordinates */
               POINT pt;
               DragQueryPoint(hDrop, &pt);
+              ClientToScreen(hwndDlg, &pt);
               
+              /* Check if drop is on Local or Remote input field */
               RECT rcLocal, rcRemote;
               GetWindowRect(GetDlgItem(hwndDlg, IDC_PATH1), &rcLocal);
               GetWindowRect(GetDlgItem(hwndDlg, IDC_PATH2), &rcRemote);
               
-              /* Convert to client coordinates */
-              POINT ptLocal = { rcLocal.left, rcLocal.top };
-              POINT ptRemote = { rcRemote.left, rcRemote.top };
-              ScreenToClient(hwndDlg, &ptLocal);
-              ScreenToClient(hwndDlg, &ptRemote);
+              int targetField = 0;
+              if (PtInRect(&rcLocal, pt))
+              {
+                targetField = IDC_PATH1;
+              }
+              else if (PtInRect(&rcRemote, pt))
+              {
+                targetField = IDC_PATH2;
+              }
               
-              /* Drop on left half -> Local, right half -> Remote */
-              RECT rcClient;
-              GetClientRect(hwndDlg, &rcClient);
-              int targetField = (pt.x < rcClient.right / 2) ? IDC_PATH1 : IDC_PATH2;
-              
-              SetDlgItemText(hwndDlg, targetField, buf);
-              stopAnalyzeAndClearList(hwndDlg);
+              /* Only accept drop if it's directly on a path field */
+              if (targetField != 0)
+              {
+                SetDlgItemText(hwndDlg, targetField, buf);
+                stopAnalyzeAndClearList(hwndDlg);
+              }
             }
           }
         }
