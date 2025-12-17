@@ -25,6 +25,7 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 |---------|-------------|
 | **Long Path Support** | Paths up to 32,767 characters (breaks the 260 char limit) |
 | **Window Memory** | Remembers position, size, and maximized state |
+| **Drag & Drop** | Drop folders directly onto Local/Remote path fields |
 
 ### 🎨 UI Modernization
 
@@ -75,6 +76,12 @@ Or download from the [Actions](https://github.com/HJS-cpu/PathSync_Optimized/act
 - Optional log file for all operations
 - Track what was copied, deleted, or skipped
 
+**Drag & Drop:**
+- Drop folders from Windows Explorer directly onto path fields
+- Drop on Local field → sets Local path
+- Drop on Remote field → sets Remote path
+- Drop .pss settings files to load configurations
+
 ---
 
 ## 🚀 Performance Details
@@ -116,3 +123,33 @@ Every push triggers an automatic build. Download artifacts from the [Actions](ht
 ```batch
 cd PathSync
 cl /O2 /EHsc pathsync.cpp fnmatch.cpp wndsize.cpp win32_utf8.c /link /OUT:PathSync.exe
+```
+
+---
+
+## 🙏 Credits
+
+- **Original PathSync** by [Cockos Incorporated](https://www.cockos.com/)
+- **Optimizations** by HJS (2025)
+
+---
+
+## 📄 License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+Based on the original PathSync source code by Cockos Incorporated.
+
+---
+
+## 📝 Changelog
+
+### v0.5 (2025)
+- Added: Long path support (>260 characters)
+- Added: Window position/size persistence
+- Added: Drag & Drop for folder paths
+- Added: Modern Windows visual styles
+- Added: Segoe UI font
+- Improved: ListView rendering performance (5-10x faster)
+- Improved: File copy buffer (1MB, 20-50% faster)
+- Improved: Action processing with enum-based system
