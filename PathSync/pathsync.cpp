@@ -1038,7 +1038,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
           }
         break;
         case IDM_ABOUT:
-          MessageBox(hwndDlg,"PathSync " PATHSYNC_VER " by HJS\r\nCopyright (C) 2004-2025, Cockos Incorporated and others\r\n"    
+          MessageBox(hwndDlg,"PathSync " PATHSYNC_VER " by HJS (Email: pathsync@gmx.org)\r\nCopyright (C) 2004-2025, Cockos Incorporated, HJS and others\r\n"    
             "\r\n"
                     "PathSync is free software; you can redistribute it and/or modify\r\n"
                         "it under the terms of the GNU General Public License as published by\r\n"
