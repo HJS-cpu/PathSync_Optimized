@@ -1,4 +1,4 @@
-# PathSync v0.5 Optimized
+# PathSync v0.5.1 Optimized
 
 [![Build Windows EXE](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml/badge.svg)](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml)
 [![Live Website](https://img.shields.io/badge/Live_Website-hjs.bplaced.net-brightgreen)](http://hjs.bplaced.net/)
