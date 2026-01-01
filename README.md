@@ -26,6 +26,7 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 | **Long Path Support** | Paths up to 32,767 characters (breaks the 260 char limit) |
 | **Window Memory** | Remembers position, size, and maximized state |
 | **Drag & Drop** | Drop folders directly onto Local/Remote path fields |
+| **Full Unicode Support** | Proper handling of umlauts and special characters (ä, ö, ü, etc.) |
 
 ### 🎨 UI Modernization
 
@@ -87,11 +88,19 @@ Or download from the [Actions](https://github.com/HJS-cpu/PathSync_Optimized/act
 ## 🚀 Performance Details
 
 ### Long Path Support
-The Windows MAX_PATH limit of 260 characters has been a long-standing limitation. PathSync v0.5 overcomes this by using the `\\?\` extended path prefix:
+The Windows MAX_PATH limit of 260 characters has been a long-standing limitation. PathSync overcomes this by using the `\\?\` extended path prefix:
 
 - ✅ Works on all Windows versions (no registry changes needed)
 - ✅ Supports paths up to 32,767 characters
 - ✅ Handles both local (C:\...) and UNC (\\\\server\...) paths
+
+### Full Unicode/UTF-8 Support
+PathSync now properly handles file and folder names with special characters:
+
+- ✅ German umlauts (ä, ö, ü, ß)
+- ✅ French accents (é, è, ê, ç)
+- ✅ Special characters and symbols
+- ✅ International character sets
 
 ### Optimized ListView Updates
 When scanning directories with 10,000+ files, the original PathSync would freeze the UI. The new version uses `WM_SETREDRAW` optimization to batch updates, resulting in 5-10x faster rendering.
@@ -143,6 +152,9 @@ Based on the original PathSync source code by Cockos Incorporated.
 ---
 
 ## 📝 Changelog
+
+### v0.5.2 (01.01.2026)
+- Fixed: Full Unicode/UTF-8 support for file and folder names with special characters (umlauts, accents, etc.)
 
 ### v0.5.1 (17.12.2025)
 - Added: Drag & Drop for folder paths
