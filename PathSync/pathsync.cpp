@@ -1,4 +1,4 @@
-#define PATHSYNC_VER "v0.5.1 Optimized"
+#define PATHSYNC_VER "v0.5.2 Optimized"
 
 /*
     PathSync - pathsync.cpp
@@ -38,6 +38,27 @@
 
 #include "resource.h"
 
+#include "../WDL/win32_utf8.h"
+
+/* OPTIMIZED: UTF-8 wrapper for GetFileAttributes (missing from WDL) */
+static DWORD GetFileAttributesUTF8(const char *path)
+{
+  DWORD ret;
+  int wlen = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+  if (wlen > 0)
+  {
+    WCHAR *wpath = (WCHAR*)malloc(wlen * sizeof(WCHAR));
+    if (wpath)
+    {
+      MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, wlen);
+      ret = GetFileAttributesW(wpath);
+      free(wpath);
+      return ret;
+    }
+  }
+  return GetFileAttributesA(path);
+}
+
 #include "../WDL/ptrlist.h"
 #include "../WDL/wdlstring.h"
 #include "../WDL/dirscan.h"
@@ -46,8 +67,6 @@
 
 #include "../WDL/wingui/wndsize.h"
 #include "fnmatch.h"
-
-#include "../WDL/win32_utf8.h"
 
 #ifdef _WIN32
 #define PREF_DIRSTR "\\"
@@ -945,7 +964,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
           else
           {
             /* OPTIMIZED: Drag & drop folder paths */
-            DWORD attr = GetFileAttributesA(buf);
+            DWORD attr = GetFileAttributesUTF8(buf);
             if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY))
             {
               /* It's a folder - add trailing backslash if missing */
@@ -2106,7 +2125,7 @@ class fileCopier
 
           char c=*p;
           *p=0;
-          success &= CreateDirectoryA(tmp.Get(),NULL);
+          success &= CreateDirectory(tmp.Get(),NULL);
           *p++ = c;
         }
       }
@@ -2196,15 +2215,15 @@ class fileCopier
         WDL_String destSaveLong;
         make_long_path(&destSaveLong, destSave.Get());
         
-        if (!fileExists || MoveFileA(fulldestLong.Get(),destSaveLong.Get()))
+        if (!fileExists || MoveFile(fulldestLong.Get(),destSaveLong.Get()))
         {
-          if (MoveFileA(m_tmpdestfn.Get(),fulldestLong.Get()))
+          if (MoveFile(m_tmpdestfn.Get(),fulldestLong.Get()))
           {
-            if (fileExists) DeleteFileA(destSaveLong.Get());
+            if (fileExists) DeleteFile(destSaveLong.Get());
           }
           else 
           {
-            if (fileExists) MoveFileA(destSaveLong.Get(),fulldestLong.Get()); // try and restore old
+            if (fileExists) MoveFile(destSaveLong.Get(),fulldestLong.Get()); // try and restore old
             err=2;
           }
         }
@@ -2243,7 +2262,7 @@ class fileCopier
       if (m_dstFile) 
       {
         delete m_dstFile;
-        DeleteFileA(m_tmpdestfn.Get());
+        DeleteFile(m_tmpdestfn.Get());
       }
       delete m_srcFile;
       
@@ -2462,7 +2481,7 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 
                 if (isDirectory(filename))
                 {
-                  if (!RemoveDirectoryA(gsLong.Get()))
+                  if (!RemoveDirectory(gsLong.Get()))
                   {
                     WDL_String news("Error removing");
                     news.Append(isRecv ? " local folder: " : " remote folder: ");
@@ -2481,7 +2500,7 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
                 else
                 {
-                  if (!DeleteFileA(gsLong.Get()))
+                  if (!DeleteFile(gsLong.Get()))
                   {
                     WDL_String news("Error removing ");
                     news.Append(isRecv ? "local file: " : "remote file: ");
