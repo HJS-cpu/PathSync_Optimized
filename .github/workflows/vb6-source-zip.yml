@@ -1,1 +1,52 @@
+name: VB6 Source ZIP (by file types)
 
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+
+          REPO="${GITHUB_REPOSITORY##*/}"
+          VERSION="${GITHUB_REF_NAME:-${GITHUB_SHA::7}}"
+          ZIP="dist/${REPO}-${VERSION}-source.zip"
+
+          # ZIP initial anlegen
+          : > "$ZIP"
+
+          # Whitelist: VB6 Projektdateien + Doku
+          find . -type f \( \
+              -name "*.vbp" -o -name "*.vbproj" -o \
+              -name "*.frm" -o -name "*.frx" -o \
+              -name "*.bas" -o -name "*.cls" -o \
+              -name "*.ctl" -o -name "*.ctx" -o \
+              -name "*.res" -o \
+              -iname "readme*" -o -name "LICENSE*" \
+            \) \
+            -not -path "./.git/*" \
+            -print0 | xargs -0 zip -r "$ZIP"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vb6-source-zip
+          path: dist/*.zip
+
+      - name: Publish to GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
