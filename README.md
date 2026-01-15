@@ -139,7 +139,7 @@ cl /O2 /EHsc pathsync.cpp fnmatch.cpp wndsize.cpp win32_utf8.c /link /OUT:PathSy
 ## 🙏 Credits
 
 - **Original PathSync** by [Cockos Incorporated](https://www.cockos.com/)
-- **Optimizations** by HJS (2025)
+- **Optimizations** by HJS (2025-2026)
 
 ---
 
