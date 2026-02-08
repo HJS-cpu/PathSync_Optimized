@@ -149,6 +149,12 @@ Based on the original PathSync source code by Cockos Incorporated.
 
 ## 📝 Changelog
 
+### v0.5.2 (01.01.2026)
+- Fixed: Full Unicode/UTF-8 support for file and folder names with special characters (umlauts, accents, etc.)
+
+### v0.5.1 (17.12.2025)
+- Added: Drag & Drop for folder paths
+
 ### v0.5 (2025)
 - Added: Long path support (>260 characters)
 - Added: Window position/size persistence
