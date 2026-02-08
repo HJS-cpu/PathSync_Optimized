@@ -7,6 +7,3 @@ PathSync/.vs/
 PathSync/build/
 *.user
 
-# Claude Code
-.claude/
-CLAUDE.md
