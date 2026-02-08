@@ -46,9 +46,26 @@ jobs:
         echo === Build complete ===
         dir build\PathSync.exe
     
-    - name: Upload artifact
+    - name: Build NSIS Installer
+      shell: cmd
+      run: |
+        echo === Building NSIS Installer ===
+        cd PathSync
+        makensis ps.nsi
+        cd ..
+        echo === Installer build complete ===
+        dir build\PathSync-*-setup.exe
+
+    - name: Upload portable EXE
       uses: actions/upload-artifact@v4
       with:
-        name: PathSync-Windows
+        name: PathSync-Portable
         path: build/PathSync.exe
+        if-no-files-found: error
+
+    - name: Upload Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: PathSync-Installer
+        path: build/PathSync-*-setup.exe
         if-no-files-found: error
