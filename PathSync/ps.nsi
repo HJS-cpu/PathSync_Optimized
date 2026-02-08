@@ -13,7 +13,7 @@ Unicode True
 ; Extract version from source code: #define PATHSYNC_VER "v0.5.2 Optimized"
 !searchparse /file pathsync.cpp '#define PATHSYNC_VER "v' VER_MAJOR '.' VER_MINOR '.' VER_PATCH ' '
 
-!define PRODUCT_NAME "PathSync"
+!define PRODUCT_NAME "PathSync Optimized"
 !define PRODUCT_PUBLISHER "HJS"
 !define PRODUCT_WEB_SITE "https://github.com/HJS-cpu/PathSync_Optimized"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
@@ -22,11 +22,11 @@ SetCompressor lzma
 RequestExecutionLevel admin
 
 ; Name and file
-Name "${PRODUCT_NAME} v${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} Optimized"
+Name "${PRODUCT_NAME} v${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
 OutFile "..\build\PathSync-${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}-setup.exe"
 
 ; Default installation folder
-InstallDir "$PROGRAMFILES\PathSync"
+InstallDir "$PROGRAMFILES\PathSync Optimized"
 
 ; Get installation folder from registry if available
 InstallDirRegKey HKLM "Software\${PRODUCT_NAME}" "InstallDir"
@@ -77,7 +77,7 @@ Section "PathSync (required)" SecCore
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
   ; Add/Remove Programs entry
-  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayName" "${PRODUCT_NAME} v${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} Optimized"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayName" "${PRODUCT_NAME} v${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\PathSync.exe,0"
   WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
@@ -108,16 +108,16 @@ SectionEnd
 
 Section "Desktop shortcut" SecDesktop
 
-  CreateShortcut "$DESKTOP\PathSync.lnk" "$INSTDIR\PathSync.exe"
+  CreateShortcut "$DESKTOP\PathSync Optimized.lnk" "$INSTDIR\PathSync.exe"
 
 SectionEnd
 
 Section "Start Menu shortcuts" SecStartMenu
 
-  CreateDirectory "$SMPROGRAMS\PathSync"
-  CreateShortcut "$SMPROGRAMS\PathSync\PathSync.lnk" "$INSTDIR\PathSync.exe"
-  CreateShortcut "$SMPROGRAMS\PathSync\License.lnk" "$INSTDIR\LICENSE.txt"
-  CreateShortcut "$SMPROGRAMS\PathSync\Uninstall PathSync.lnk" "$INSTDIR\Uninstall.exe"
+  CreateDirectory "$SMPROGRAMS\PathSync Optimized"
+  CreateShortcut "$SMPROGRAMS\PathSync Optimized\PathSync Optimized.lnk" "$INSTDIR\PathSync.exe"
+  CreateShortcut "$SMPROGRAMS\PathSync Optimized\License.lnk" "$INSTDIR\LICENSE.txt"
+  CreateShortcut "$SMPROGRAMS\PathSync Optimized\Uninstall PathSync Optimized.lnk" "$INSTDIR\Uninstall.exe"
 
 SectionEnd
 
@@ -133,11 +133,11 @@ Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
 
   ; Remove Start Menu shortcuts
-  Delete "$SMPROGRAMS\PathSync\*.lnk"
-  RMDir "$SMPROGRAMS\PathSync"
+  Delete "$SMPROGRAMS\PathSync Optimized\*.lnk"
+  RMDir "$SMPROGRAMS\PathSync Optimized"
 
   ; Remove Desktop shortcut
-  Delete "$DESKTOP\PathSync.lnk"
+  Delete "$DESKTOP\PathSync Optimized.lnk"
 
   ; Remove registry keys
   DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
