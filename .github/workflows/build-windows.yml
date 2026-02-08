@@ -46,12 +46,16 @@ jobs:
         echo === Build complete ===
         dir build\PathSync.exe
     
+    - name: Install NSIS
+      run: choco install nsis -y
+      shell: cmd
+
     - name: Build NSIS Installer
       shell: cmd
       run: |
         echo === Building NSIS Installer ===
         cd PathSync
-        makensis ps.nsi
+        "%ProgramFiles(x86)%\NSIS\makensis.exe" ps.nsi
         cd ..
         echo === Installer build complete ===
         dir build\PathSync-*-setup.exe
