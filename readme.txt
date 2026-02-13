@@ -21,7 +21,7 @@ v0.5 (08/12/2025)
 Special thanks to:
 - Cockos Incorporated for the original PathSync (https://www.cockos.com/pathsync/).
 
-Copyright � 2025-2026 HJS
+Copyright 2025-2026 HJS
 
 Contact Info
 ------------
