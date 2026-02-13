@@ -1,7 +1,7 @@
 # PathSync Optimized
 
 [![Build Windows EXE](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml/badge.svg)](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml)
-[![Live Website](https://img.shields.io/badge/Live_Website-hjs.bplaced.net-brightgreen)](http://hjs.bplaced.net/)
+[![Live Website](https://img.shields.io/badge/Live_Website-hjs.page.gd-brightgreen)](https://hjs.page.gd/pso/)
 
 A modernized and optimized fork of **PathSync**, the lightweight file synchronization tool originally developed by Cockos Incorporated.
 
@@ -38,7 +38,7 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 ## 📥 Download & Links
 
 ### 🌐 **Live Website**
-**[➡️ Visit Live Website](http://hjs.bplaced.net/)**
+**[➡️ Visit Live Website](https://hjs.page.gd/pso/)**
 
 ### 💾 **Desktop Application**
 **[⬇️ Download Latest Release](https://github.com/HJS-cpu/PathSync_Optimized/releases/latest)**
