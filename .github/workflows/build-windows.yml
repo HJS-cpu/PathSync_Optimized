@@ -60,11 +60,20 @@ jobs:
         echo === Installer build complete ===
         dir build\PathSync-*-setup.exe
 
+    - name: Prepare portable package
+      shell: cmd
+      run: |
+        copy readme.txt build\readme.txt
+        copy license.txt build\license.txt
+
     - name: Upload portable EXE
       uses: actions/upload-artifact@v4
       with:
         name: PathSync-Portable
-        path: build/PathSync.exe
+        path: |
+          build/PathSync.exe
+          build/readme.txt
+          build/license.txt
         if-no-files-found: error
 
     - name: Upload Installer

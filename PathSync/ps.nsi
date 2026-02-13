@@ -42,7 +42,7 @@ InstallDirRegKey HKLM "Software\${PRODUCT_NAME}" "InstallDir"
 ;--------------------------------
 ; Pages
 
-!insertmacro MUI_PAGE_LICENSE "..\LICENSE"
+!insertmacro MUI_PAGE_LICENSE "..\license.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -68,7 +68,10 @@ Section "PathSync (required)" SecCore
   File "..\build\PathSync.exe"
 
   ; License file
-  File /oname=LICENSE.txt "..\LICENSE"
+  File /oname=LICENSE.txt "..\license.txt"
+
+  ; Readme file
+  File "..\readme.txt"
 
   ; Store installation folder
   WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallDir" $INSTDIR
@@ -116,6 +119,7 @@ Section "Start Menu shortcuts" SecStartMenu
 
   CreateDirectory "$SMPROGRAMS\PathSync Optimized"
   CreateShortcut "$SMPROGRAMS\PathSync Optimized\PathSync Optimized.lnk" "$INSTDIR\PathSync.exe"
+  CreateShortcut "$SMPROGRAMS\PathSync Optimized\Readme.lnk" "$INSTDIR\readme.txt"
   CreateShortcut "$SMPROGRAMS\PathSync Optimized\License.lnk" "$INSTDIR\LICENSE.txt"
   CreateShortcut "$SMPROGRAMS\PathSync Optimized\Uninstall PathSync Optimized.lnk" "$INSTDIR\Uninstall.exe"
 
@@ -130,6 +134,7 @@ Section "Uninstall"
   Delete "$INSTDIR\PathSync.exe"
   Delete "$INSTDIR\PathSync.exe.ini"
   Delete "$INSTDIR\LICENSE.txt"
+  Delete "$INSTDIR\readme.txt"
   Delete "$INSTDIR\Uninstall.exe"
 
   ; Remove Start Menu shortcuts
