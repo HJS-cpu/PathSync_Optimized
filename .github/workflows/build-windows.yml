@@ -110,10 +110,12 @@ jobs:
         zip -r ../PathSync-Portable.zip .
         cd ..
 
-    - name: Prepare release assets
+    - name: Create installer ZIP
       run: |
-        cp installer/PathSync-*-setup.exe .
-        ls -la *.zip *.exe
+        cd installer
+        zip -r ../PathSync-Installer.zip .
+        cd ..
+        ls -la *.zip
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -122,4 +124,4 @@ jobs:
         generate_release_notes: false
         files: |
           PathSync-Portable.zip
-          PathSync-*-setup.exe
+          PathSync-Installer.zip
