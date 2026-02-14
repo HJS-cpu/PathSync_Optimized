@@ -141,7 +141,7 @@ cl /O2 /EHsc pathsync.cpp fnmatch.cpp wndsize.cpp win32_utf8.c /link /OUT:PathSy
 
 ## 📄 License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v2.0 - see the [LICENSE](LICENSE) file for details.
 
 Based on the original PathSync source code by Cockos Incorporated.
 
