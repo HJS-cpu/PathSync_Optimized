@@ -2,7 +2,7 @@
 REM Build script for Visual Studio 2022
 REM Run this from VS2022 Developer Command Prompt or Terminal
 
-echo === Building PathSync v0.5.1 Optimized ===
+echo === Building PathSync Optimized ===
 
 if not exist "build" mkdir build
 

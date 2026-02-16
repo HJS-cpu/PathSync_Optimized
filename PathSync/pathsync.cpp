@@ -2367,8 +2367,7 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
       if (GetPrivateProfileInt("config","accopy",0,m_inifile)) CheckDlgButton(hwndDlg,IDC_CHECK1,BST_CHECKED);
       if (g_throttle) CheckDlgButton(hwndDlg,IDC_CHECK2,BST_CHECKED);     
     
-      // IDC_LIST1 is a list box, not a listview, so don't do this.
-      //      WDL_UTF8_HookListView(GetDlgItem(hwndDlg,IDC_LIST1));
+      WDL_UTF8_HookListBox(GetDlgItem(hwndDlg,IDC_LIST1));
 
       SetDlgItemInt(hwndDlg,IDC_EDIT1,g_throttlespd,FALSE);
       m_copy_starttime=GetTickCount();
