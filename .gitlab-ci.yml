@@ -1,0 +1,168 @@
+stages:
+  - build
+  - upload
+  - release
+
+# ==============================================================================
+# Stage 1: Build (Windows Runner)
+# ==============================================================================
+build:
+  stage: build
+  tags:
+    - saas-windows-medium-amd64
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    # --- Build PathSync.exe via MSVC ---
+    - |
+      cmd /c "
+        @echo off
+        setlocal enabledelayedexpansion
+
+        REM === Find Visual Studio vcvars32.bat ===
+        set VCVARS=
+        if exist \"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars32.bat\" (
+          set \"VCVARS=C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars32.bat\"
+        ) else if exist \"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars32.bat\" (
+          set \"VCVARS=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars32.bat\"
+        ) else if exist \"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars32.bat\" (
+          set \"VCVARS=C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars32.bat\"
+        ) else if exist \"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars32.bat\" (
+          set \"VCVARS=C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars32.bat\"
+        ) else if exist \"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars32.bat\" (
+          set \"VCVARS=C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars32.bat\"
+        ) else (
+          REM Try vswhere as last resort
+          for /f \"usebackq tokens=*\" %%i in (`\"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe\" -latest -property installationPath 2^>nul`) do (
+            set \"VCVARS=%%i\VC\Auxiliary\Build\vcvars32.bat\"
+          )
+        )
+
+        if not defined VCVARS (
+          echo ERROR: Could not find Visual Studio installation
+          exit /b 1
+        )
+
+        echo Using: !VCVARS!
+        call \"!VCVARS!\"
+        if errorlevel 1 (
+          echo ERROR: vcvars32.bat failed
+          exit /b 1
+        )
+
+        if not exist build mkdir build
+
+        echo === Compiling resources ===
+        rc /fo build\pathsync.res PathSync\res.rc
+        if errorlevel 1 exit /b 1
+
+        echo === Compiling pathsync.cpp ===
+        cl /c /O2 /EHsc /DWIN32 /D_WINDOWS /DNDEBUG /I\"WDL\" /Fobuild\pathsync.obj PathSync\pathsync.cpp
+        if errorlevel 1 exit /b 1
+
+        echo === Compiling fnmatch.cpp ===
+        cl /c /O2 /EHsc /DWIN32 /D_WINDOWS /DNDEBUG /I\"WDL\" /Fobuild\fnmatch.obj PathSync\fnmatch.cpp
+        if errorlevel 1 exit /b 1
+
+        echo === Compiling wndsize.cpp ===
+        cl /c /O2 /EHsc /DWIN32 /D_WINDOWS /DNDEBUG /I\"WDL\" /Fobuild\wndsize.obj WDL\WinGUI\wndsize.cpp
+        if errorlevel 1 exit /b 1
+
+        echo === Compiling win32_utf8.c ===
+        cl /c /O2 /DWIN32 /D_WINDOWS /DNDEBUG /Fobuild\win32_utf8.obj WDL\win32_utf8.c
+        if errorlevel 1 exit /b 1
+
+        echo === Linking ===
+        link /OUT:build\PathSync.exe /SUBSYSTEM:WINDOWS build\pathsync.obj build\fnmatch.obj build\wndsize.obj build\win32_utf8.obj build\pathsync.res kernel32.lib user32.lib gdi32.lib shell32.lib comctl32.lib comdlg32.lib advapi32.lib ole32.lib
+        if errorlevel 1 exit /b 1
+
+        echo === Build complete ===
+        dir build\PathSync.exe
+      "
+
+    # --- Install NSIS and build installer ---
+    - choco install nsis -y
+    - |
+      cmd /c "
+        cd PathSync
+        \"%ProgramFiles(x86)%\NSIS\makensis.exe\" ps.nsi
+        if errorlevel 1 exit /b 1
+        cd ..
+        echo === Installer build complete ===
+        dir build\PathSync-*-setup.exe
+      "
+
+    # --- Copy readme + license for portable package ---
+    - Copy-Item readme.txt build\readme.txt
+    - Copy-Item license.txt build\license.txt
+  artifacts:
+    paths:
+      - build/PathSync.exe
+      - build/readme.txt
+      - build/license.txt
+      - build/PathSync-*-setup.exe
+    expire_in: 1 week
+
+# ==============================================================================
+# Stage 2: Upload packages (Windows Runner, only on tags)
+# ==============================================================================
+upload:
+  stage: upload
+  tags:
+    - saas-windows-medium-amd64
+  needs:
+    - job: build
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  script:
+    # --- Create ZIP files ---
+    - Compress-Archive -Path build\PathSync.exe, build\readme.txt, build\license.txt -DestinationPath PathSync-Portable.zip
+    - |
+      $setupExe = Get-ChildItem build\PathSync-*-setup.exe | Select-Object -First 1
+      if (-not $setupExe) {
+        Write-Error "Setup EXE not found"
+        exit 1
+      }
+      Compress-Archive -Path $setupExe.FullName -DestinationPath PathSync-Installer.zip
+
+    # --- Upload to GitLab Generic Packages Registry ---
+    - |
+      $baseUrl = "$env:CI_API_V4_URL/projects/$env:CI_PROJECT_ID/packages/generic/pathsync/$env:CI_COMMIT_TAG"
+      $headers = @{ "JOB-TOKEN" = $env:CI_JOB_TOKEN }
+
+      Write-Host "Uploading PathSync-Portable.zip..."
+      Invoke-RestMethod -Uri "$baseUrl/PathSync-Portable.zip" -Method Put -Headers $headers -InFile PathSync-Portable.zip
+
+      Write-Host "Uploading PathSync-Installer.zip..."
+      Invoke-RestMethod -Uri "$baseUrl/PathSync-Installer.zip" -Method Put -Headers $headers -InFile PathSync-Installer.zip
+
+      Write-Host "Uploads complete."
+
+# ==============================================================================
+# Stage 3: Create GitLab Release (Linux, only on tags)
+# ==============================================================================
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: upload
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  script:
+    - echo "Creating release for $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "PathSync Optimized $CI_COMMIT_TAG"
+    description: "Release $CI_COMMIT_TAG"
+    assets:
+      links:
+        - name: "PathSync-Portable.zip"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/pathsync/${CI_COMMIT_TAG}/PathSync-Portable.zip"
+          link_type: "package"
+        - name: "PathSync-Installer.zip"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/pathsync/${CI_COMMIT_TAG}/PathSync-Installer.zip"
+          link_type: "package"
