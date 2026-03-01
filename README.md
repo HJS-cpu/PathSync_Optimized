@@ -1,6 +1,6 @@
 # PathSync Optimized
 
-[![Build Windows EXE](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml/badge.svg)](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml)
+[![Build Status](https://gitlab.com/HJS-cpu/pathsync-optimized/badges/main/pipeline.svg)](https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines)
 [![Live Website](https://img.shields.io/badge/Live_Website-hjs.page.gd-brightgreen)](https://hjs.page.gd/pso/)
 
 A modernized and optimized fork of **PathSync**, the lightweight file synchronization tool originally developed by Cockos Incorporated.
@@ -41,13 +41,13 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 **[➡️ Visit Live Website](https://hjs.page.gd/pso/)**
 
 ### 💾 **Desktop Application**
-**[⬇️ Download Latest Release](https://github.com/HJS-cpu/PathSync_Optimized/releases/latest)**
+**[⬇️ Download Latest Release](https://gitlab.com/HJS-cpu/pathsync-optimized/-/releases)**
 
 Available in two versions:
 - **Portable** — Single EXE, no installation needed. Just run it.
 - **Installer** — Setup with Start Menu shortcut and uninstaller.
 
-Or download the latest build artifacts from the [Actions](https://github.com/HJS-cpu/PathSync_Optimized/actions) tab.
+Or download the latest build artifacts from the [Pipelines](https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines) page.
 
 ---
 
@@ -121,8 +121,8 @@ Modern SSDs can transfer data much faster than the original 128KB buffer allowed
 - Visual Studio 2022 (or compatible)
 - Windows SDK
 
-### Build via GitHub Actions
-Every push triggers an automatic build. Download artifacts from the [Actions](https://github.com/HJS-cpu/PathSync_Optimized/actions) tab.
+### Build via CI/CD
+Every push triggers an automatic build. Download artifacts from the [Pipelines](https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines) page.
 
 ### Manual Build
 ```batch
