@@ -98,15 +98,19 @@ build:
       '@ | Set-Content -Path ci-nsis.bat -Encoding ASCII
     - cmd /c ci-nsis.bat
 
-    # --- Copy readme + license for portable package ---
-    - Copy-Item readme.txt build\readme.txt
-    - Copy-Item license.txt build\license.txt
+    # --- Create two separate ZIP packages ---
+    - Compress-Archive -Path build\PathSync.exe, readme.txt, license.txt -DestinationPath PathSync-Portable.zip
+    - |
+      $setupExe = Get-ChildItem build\PathSync-*-setup.exe | Select-Object -First 1
+      if (-not $setupExe) {
+        Write-Error "Setup EXE not found"
+        exit 1
+      }
+      Compress-Archive -Path $setupExe.FullName -DestinationPath PathSync-Installer.zip
   artifacts:
     paths:
-      - build/PathSync.exe
-      - build/readme.txt
-      - build/license.txt
-      - build/PathSync-*-setup.exe
+      - PathSync-Portable.zip
+      - PathSync-Installer.zip
     expire_in: 1 week
 
 # ==============================================================================
@@ -122,17 +126,6 @@ upload:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v/
   script:
-    # --- Create ZIP files ---
-    - Compress-Archive -Path build\PathSync.exe, build\readme.txt, build\license.txt -DestinationPath PathSync-Portable.zip
-    - |
-      $setupExe = Get-ChildItem build\PathSync-*-setup.exe | Select-Object -First 1
-      if (-not $setupExe) {
-        Write-Error "Setup EXE not found"
-        exit 1
-      }
-      Compress-Archive -Path $setupExe.FullName -DestinationPath PathSync-Installer.zip
-
-    # --- Upload to GitLab Generic Packages Registry ---
     - |
       $baseUrl = "$env:CI_API_V4_URL/projects/$env:CI_PROJECT_ID/packages/generic/pathsync/$env:CI_COMMIT_TAG"
       $headers = @{ "JOB-TOKEN" = $env:CI_JOB_TOKEN }
