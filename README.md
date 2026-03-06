@@ -150,6 +150,14 @@ Based on the original PathSync source code by Cockos Incorporated.
 
 ## 📝 Changelog
 
+### v0.5.3 (06.03.2026)
+- Added: Website link in Help menu (? → Website)
+- Security: Replaced sprintf with _snprintf to prevent buffer overflows
+- Fixed: Format string vulnerability in log output
+- Fixed: Directory creation error reporting (errors were silently ignored)
+- Removed: Deprecated Windows 9x compatibility code
+- Removed: Obsolete Visual Studio 6 project files
+
 ### v0.5.2 (01.01.2026)
 - Fixed: Full Unicode/UTF-8 support for file and folder names with special characters (umlauts, accents, etc.)
 
