@@ -193,8 +193,10 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Quit",                       IDM_EXIT
     END
-    POPUP "&Help", HELP
+    POPUP "&?", HELP
     BEGIN
+        MENUITEM "&Website...",                 IDM_WEBSITE
+        MENUITEM SEPARATOR
         MENUITEM "&About...",                   IDM_ABOUT
     END
 END

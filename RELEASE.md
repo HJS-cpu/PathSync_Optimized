@@ -9,9 +9,14 @@ A modernized, optimized fork of [PathSync](https://www.cockos.com/pathsync/) by 
 | **PathSync-Portable.zip** | Standalone EXE — no installation needed, just extract and run |
 | **PathSync-Installer.zip** | NSIS setup with Start Menu shortcut and uninstaller |
 
-### What's New in v0.5.2
+### What's New in v0.5.3
 
-- Full Unicode/UTF-8 support for file and folder names with special characters (umlauts, accents, CJK, etc.)
+- **Website link** in Help menu (? → Website)
+- **Security hardening** — replaced all `sprintf` with `_snprintf` to prevent buffer overflows with long paths
+- **Fixed format string vulnerability** in log output
+- **Fixed `createdir` error reporting** — directory creation errors are now correctly detected and shown
+- **Removed deprecated Windows 9x compatibility code**
+- **Code quality** — fixed variable shadowing, reserved keyword usage, added bounds checks
 
 ### Key Features
 

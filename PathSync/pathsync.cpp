@@ -1,4 +1,4 @@
-#define PATHSYNC_VER "v0.5.2 Optimized"
+#define PATHSYNC_VER "v0.5.3 Optimized"
 
 /*
     PathSync - pathsync.cpp
@@ -115,12 +115,16 @@ ActionType get_action_type(const char * str)
     case 'L': // "Local->Remote"
       return ACTION_TYPE_SEND;
     case 'C': // "Create Local" or "Create Remote"
-      if (str[7] == 'L') return ACTION_TYPE_RECV_CREATE;
-      if (str[7] == 'R') return ACTION_TYPE_SEND_CREATE;
+      if (strlen(str) > 7) {
+        if (str[7] == 'L') return ACTION_TYPE_RECV_CREATE;
+        if (str[7] == 'R') return ACTION_TYPE_SEND_CREATE;
+      }
       break;
     case 'D': // "Delete Local" or "Delete Remote"
-      if (str[7] == 'L') return ACTION_TYPE_RECV_DELETE;
-      if (str[7] == 'R') return ACTION_TYPE_SEND_DELETE;
+      if (strlen(str) > 7) {
+        if (str[7] == 'L') return ACTION_TYPE_RECV_DELETE;
+        if (str[7] == 'R') return ACTION_TYPE_SEND_DELETE;
+      }
       break;
   }
   return ACTION_TYPE_UNKNOWN;
@@ -343,7 +347,8 @@ void RestartLogging(HWND hwndDlg)
         if (!g_log)
         {
             char message[2048];
-            sprintf(message, "Couldn't open logfile %s", name);
+            _snprintf(message, sizeof(message), "Couldn't open logfile %s", name);
+            message[sizeof(message)-1] = 0;
             MessageBox(hwndDlg, message, "Error", 0);
         }
     }
@@ -356,8 +361,8 @@ void LogMessage(const char * pStr)
         char timestr[100] = "";
         time_t curtime = time(0);
         strftime(timestr, sizeof timestr - 1, "%Y-%m-%d %H:%M:%S ", localtime(&curtime)); 
-        fprintf(g_log, timestr);
-        fprintf(g_log, pStr);
+        fprintf(g_log, "%s", timestr);
+        fprintf(g_log, "%s", pStr);
         fprintf(g_log, "\n");
         fflush(g_log);
     }
@@ -378,8 +383,8 @@ void calcStats(HWND hwndDlg)
     lvi.cchTextMax=sizeof(action);
     ListView_GetItem(m_listview,&lvi);
 
-    int x=lvi.lParam;
-    dirItem **its=m_listview_recs.GetList()+x;
+    int idx=lvi.lParam;
+    dirItem **its=m_listview_recs.GetList()+idx;
     // AD: Use wrapper functions to compare actions
     if (!action_is_none(action))
     {
@@ -403,12 +408,14 @@ void calcStats(HWND hwndDlg)
   {
     char tmp[128];
     format_size_string(totalbytescopy,tmp);
-    sprintf(buf+strlen(buf),"copy %s in %d file%s",tmp,totalfilescopy,totalfilescopy==1?"":"s");
+    _snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),"copy %s in %d file%s",tmp,totalfilescopy,totalfilescopy==1?"":"s");
+    buf[sizeof(buf)-1]=0;
   }
   if (totalfilesdelete)
   {
     if (totalfilescopy) strcat(buf,", and ");
-    sprintf(buf+strlen(buf),"delete %d file%s",totalfilesdelete,totalfilesdelete==1?"":"s");
+    _snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),"delete %d file%s",totalfilesdelete,totalfilesdelete==1?"":"s");
+    buf[sizeof(buf)-1]=0;
   }
   
   if (!totalfilesdelete && !totalfilescopy)
@@ -434,7 +441,8 @@ void set_current_settings_file(HWND hwndDlg, char *fn)
   char *p=fn;
   while (*p) p++;
   while (p >= fn && *p != '\\' && *p != '/') p--;
-  sprintf(buf,"PathSync " PATHSYNC_VER " - Analysis - %s",p+1);
+  _snprintf(buf,sizeof(buf),"PathSync " PATHSYNC_VER " - Analysis - %s",p+1);
+  buf[sizeof(buf)-1]=0;
   SetWindowText(hwndDlg,buf);
 }
 
@@ -1056,6 +1064,9 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
           }
         break;
+        case IDM_WEBSITE:
+          ShellExecute(hwndDlg, "open", "https://hjs.page.gd/pso/", NULL, NULL, SW_SHOWNORMAL);
+        break;
         case IDM_ABOUT:
           MessageBox(hwndDlg,"PathSync " PATHSYNC_VER " by HJS (Email: pathsync@gmx.org)\r\nCopyright (C) 2004-2025, Cockos Incorporated, HJS and others\r\n"    
             "\r\n"
@@ -1368,8 +1379,9 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   if (localonly)
                   {
                     char buf[512];
-                    sprintf(buf,"Setting the action to " ACTION_RECV " will result in %d local file%s/folder%s being removed.\r\n"
+                    _snprintf(buf,sizeof(buf),"Setting the action to " ACTION_RECV " will result in %d local file%s/folder%s being removed.\r\n"
                         "If this is acceptable, select Yes. Otherwise, select No.",localonly,localonly==1?"":"s",localonly==1?"":"s");
+                    buf[sizeof(buf)-1]=0;
                     if (MessageBox(hwndDlg,buf,"PathSync Warning",MB_YESNO|MB_ICONQUESTION) == IDYES) do_action_change=1;
                   }
                   else do_action_change=1;
@@ -1378,8 +1390,9 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   if (remoteonly)
                   { 
                     char buf[512];
-                    sprintf(buf,"Setting the action to " ACTION_SEND " will result in %d remote file%s/folder%s being removed.\r\n"
+                    _snprintf(buf,sizeof(buf),"Setting the action to " ACTION_SEND " will result in %d remote file%s/folder%s being removed.\r\n"
                       "If this is acceptable, select Yes. Otherwise, select No.",remoteonly,remoteonly==1?"":"s",remoteonly==1?"":"s");
+                    buf[sizeof(buf)-1]=0;
                     if (MessageBox(hwndDlg,buf,"PathSync Warning",MB_YESNO|MB_ICONQUESTION) == IDYES) do_action_change=2;
                   }
                   else do_action_change=2;
@@ -1418,35 +1431,35 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   ListView_GetItemText(m_listview,sel,COL_FILENAME,buf,sizeof(buf));
 
                   // replace '%1' with the local file
-                  char param1[2048] = "";
+                  WDL_String param1;
                   char * p1 = strstr(params, "%1");
                   if (p1)
                   {
-                    strncat(param1, params, p1 - params);
-                    strcat(param1, m_curscanner_basepath[0].Get());
-                    strcat(param1, PREF_DIRSTR);
-                    strcat(param1, buf);
-                    strcat(param1, p1+2);
+                    param1.Append(params, (int)(p1 - params));
+                    param1.Append(m_curscanner_basepath[0].Get());
+                    param1.Append(PREF_DIRSTR);
+                    param1.Append(buf);
+                    param1.Append(p1+2);
                   }
                   else
                   {
-                    strcat(param1, params);
+                    param1.Set(params);
                   }
 
                   // replace '%2' with the remote file
-                  char param2[2048] = "";
-                  char * p2 = strstr(param1, "%2");
+                  WDL_String param2;
+                  char * p2 = strstr(param1.Get(), "%2");
                   if (p2)
                   {
-                    strncat(param2, param1, p2 - param1);
-                    strcat(param2, m_curscanner_basepath[1].Get());
-                    strcat(param2, PREF_DIRSTR);
-                    strcat(param2, buf);
-                    strcat(param2, p2+2);
+                    param2.Append(param1.Get(), (int)(p2 - param1.Get()));
+                    param2.Append(m_curscanner_basepath[1].Get());
+                    param2.Append(PREF_DIRSTR);
+                    param2.Append(buf);
+                    param2.Append(p2+2);
                   }
                   else
                   {
-                    strcat(param2, param1);
+                    param2.Set(param1.Get());
                   }
 
                   SHELLEXECUTEINFO sei = { sizeof(sei) };
@@ -1454,7 +1467,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   sei.nShow = SW_SHOWNORMAL;
                   sei.lpVerb = "open";
                   sei.lpFile = path;
-                  sei.lpParameters = param2;
+                  sei.lpParameters = param2.Get();
                   ShellExecuteEx(&sei);
                 }
                 break;
@@ -1912,7 +1925,6 @@ char * skip_root(char *path)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nShowCmd)
 {
 #ifdef _WIN32
-  if (GetVersion()<0x80000000) 
   {
     LPSTR s=GetCommandParametersUTF8();
     if (s) lpszCmdParam=s;
@@ -2085,12 +2097,12 @@ class fileCopier
     // OPTIMIZED: Long path support
     BOOL createdir(char * dest)
     {
-      BOOL success = FALSE;
+      BOOL anyError = FALSE;
       WDL_String longPath;
       make_long_path(&longPath, dest);
       WDL_String tmp(longPath.Get());
       char *p=tmp.Get();
-      if (*p) 
+      if (*p)
       {
         // For long paths, skip the \\?\ prefix
         if (p[0] == '\\' && p[1] == '\\' && p[2] == '?' && p[3] == '\\')
@@ -2117,7 +2129,7 @@ class fileCopier
         {
           p = skip_root(tmp.Get());
         }
-        
+
         if (p) for (;;)
         {
           while (*p && *p != '\\' && *p != '/') p++;
@@ -2125,11 +2137,15 @@ class fileCopier
 
           char c=*p;
           *p=0;
-          success &= CreateDirectory(tmp.Get(),NULL);
+          if (!CreateDirectory(tmp.Get(),NULL))
+          {
+            if (GetLastError() != ERROR_ALREADY_EXISTS)
+              anyError = TRUE;
+          }
           *p++ = c;
         }
       }
-      return success;
+      return anyError;
     }
 
     int run(HWND hwndParent) // return 1 when done
@@ -2152,8 +2168,8 @@ class fileCopier
         m_filepos += r;
         g_throttle_bytes+=r;
 
-        DWORD or = m_dstFile->Write(buf,r);
-        if (or != r)
+        DWORD wr = m_dstFile->Write(buf,r);
+        if (wr != r)
         {
           WDL_String tmp("Error writing to: ");
           tmp.Append(m_relfn.Get());
@@ -2179,7 +2195,8 @@ class fileCopier
           format_size_string(m_filesize,tmp2);
           format_size_string((m_filepos * 1000)/tm,tmp3);
 
-          sprintf(text,"%d%% - %s/%s @ %s/s",v/100,tmp1,tmp2,tmp3);
+          _snprintf(text,sizeof(text),"%d%% - %s/%s @ %s/s",v/100,tmp1,tmp2,tmp3);
+          text[sizeof(text)-1]=0;
           SetDlgItemText(hwndParent,IDC_FILEPOS,text);
         }
       }
@@ -2245,7 +2262,8 @@ class fileCopier
             
           format_size_string(m_filesize,tmp2);
           format_size_string((m_filepos * 1000)/tm,tmp3);
-          sprintf(text,"%s @ %s/s %s", tmp2, tmp3, m_fulldestfn.Get());
+          _snprintf(text,sizeof(text),"%s @ %s/s %s", tmp2, tmp3, m_fulldestfn.Get());
+          text[sizeof(text)-1]=0;
           LogMessage(text);
         }
 
@@ -2300,7 +2318,7 @@ void updateXferStatus(HWND hwndDlg)
   format_size_string(m_total_copy_size,tmp2);
   format_size_string((m_copy_bytestotalsofar * 1000) / t,tmp3);
 
-  sprintf(buf,"%d%% - %d file%s/folder%s (%s/%s) copied at %s/s, %d file%s/folder%s deleted.\r\nElapsed Time: %d:%02d, Time Remaining: %d:%02d",v/100,
+  _snprintf(buf,sizeof(buf),"%d%% - %d file%s/folder%s (%s/%s) copied at %s/s, %d file%s/folder%s deleted.\r\nElapsed Time: %d:%02d, Time Remaining: %d:%02d",v/100,
     m_copy_files,m_copy_files==1?"":"s",m_copy_files==1?"":"s",
     tmp1,
     tmp2,
@@ -2308,12 +2326,14 @@ void updateXferStatus(HWND hwndDlg)
     m_copy_deletes,m_copy_deletes==1?"":"s",m_copy_deletes==1?"":"s",
     t/60000,(t/1000)%60,
     (pred_t-t/1000)/60,(pred_t-t/1000)%60);
+  buf[sizeof(buf)-1]=0;
   SetDlgItemText(hwndDlg,IDC_TOTALPOS,p);
   if (g_intray)
   {
     if (v/100 != g_lasttraypercent)
     {
-      sprintf(buf, "PathSync - Synchronizing - %d%%", v/100);
+      _snprintf(buf, sizeof(buf), "PathSync - Synchronizing - %d%%", v/100);
+      buf[sizeof(buf)-1]=0;
       systray_mod(g_dlg, 0, buf);
       g_lasttraypercent = v/100;
     }
@@ -2329,7 +2349,7 @@ void LogEndSyncMessage()
     format_size_string(m_total_copy_size, tmp1);
     format_size_string(t ? (m_total_copy_size * 1000) / t : 0, tmp2);
 
-    sprintf(buf, "%d file%s copied (%s @ %s/s), %d file%s deleted. Elapsed Time: %d:%02d",
+    _snprintf(buf, sizeof(buf), "%d file%s copied (%s @ %s/s), %d file%s deleted. Elapsed Time: %d:%02d",
         m_copy_files,
         m_copy_files==1?"":"s",
         tmp1,
@@ -2338,6 +2358,7 @@ void LogEndSyncMessage()
         m_copy_deletes==1?"":"s",
         t/60000,
         (t/1000)%60);
+    buf[sizeof(buf)-1]=0;
 
     LogMessage(buf);
 }
@@ -2677,10 +2698,11 @@ BOOL WINAPI diffToolProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
           GetDlgItemText(hwndDlg, IDC_DIFF, path, sizeof path);
           WritePrivateProfileString("config","difftool", path, m_inifile);
           char params[1024] = "";
-          char escapedparams[1024] = "";
+          char escapedparams[1028] = "";
           GetDlgItemText(hwndDlg, IDC_DIFFPARAMS, params, sizeof params);
           // AD: Wrap the string in quotes, as GetPrivateProfileString strips any leading and trailing quotes
-          sprintf(escapedparams, "\"%s\"", params);
+          _snprintf(escapedparams, sizeof(escapedparams), "\"%s\"", params);
+          escapedparams[sizeof(escapedparams)-1]=0;
           WritePrivateProfileString("config","diffparams", escapedparams, m_inifile);
           EndDialog(hwndDlg, 0);
         }
