@@ -1,9 +1,6 @@
 # Build output
 build/
 
-# GitHub Actions (nur lokal, nicht auf GitLab)
-.github/
-
 # Visual Studio
 .vs/
 PathSync/.vs/
