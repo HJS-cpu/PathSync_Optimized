@@ -64,8 +64,8 @@ Or download the latest build artifacts from the [Pipelines](https://gitlab.com/H
 ## 🔧 Features
 
 **Synchronization Modes:**
-- Local ↔ Local folder sync
-- Local ↔ Network share sync (UNC paths supported)
+- Local <-> Local folder sync
+- Local <-> Network share sync (UNC paths supported)
 
 **Analysis & Preview:**
 - Preview all changes before synchronizing
@@ -84,8 +84,8 @@ Or download the latest build artifacts from the [Pipelines](https://gitlab.com/H
 
 **Drag & Drop:**
 - Drop folders from Windows Explorer directly onto path fields
-- Drop on Local field → sets Local path
-- Drop on Remote field → sets Remote path
+- Drop on Local field sets Local path
+- Drop on Remote field sets Remote path
 - Drop .pss settings files to load configurations
 
 ---
@@ -151,7 +151,7 @@ Based on the original PathSync source code by Cockos Incorporated.
 ## 📝 Changelog
 
 ### v0.5.3 (06.03.2026)
-- Added: Website link in Help menu (? → Website)
+- Added: Website link in Help menu (? > Website)
 - Security: Replaced sprintf with _snprintf to prevent buffer overflows
 - Fixed: Format string vulnerability in log output
 - Fixed: Directory creation error reporting (errors were silently ignored)
