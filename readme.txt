@@ -1,9 +1,17 @@
 PathSync Optimized
 ==================
-Current Version: v0.5.2
+Current Version: v0.5.3
 
 
 Version history:
+
+v0.5.3 (13/03/2026)
+  + Website link in Help menu (? → Website)
+  + Security hardening — replaced all sprintf with _snprintf to prevent buffer overflows
+  + Fixed format string vulnerability in log output
+  + Fixed createdir error reporting — errors are now correctly detected and shown
+  + Removed deprecated Windows 9x compatibility code
+  + Code quality — fixed variable shadowing, reserved keyword usage, added bounds checks
 
 V0.5.2 (01/01/2026)
   + PathSync now properly handles file and folder names with special characters
@@ -27,4 +35,5 @@ Contact Info
 ------------
 Web: https://hjs.page.gd/pso/
 GitLab: https://gitlab.com/HJS-cpu/pathsync-optimized
+GitHub: https://github.com/HJS-cpu/PathSync_Optimized
 E-Mail: pathsync@gmx.org
