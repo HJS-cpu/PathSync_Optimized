@@ -1,4 +1,4 @@
-#define PATHSYNC_VER "v0.5.3 Optimized"
+#define PATHSYNC_VER "v0.5.4 Optimized"
 
 /*
     PathSync - pathsync.cpp
@@ -187,6 +187,10 @@ WDL_PtrList<WDL_String> m_include_files;
 
 int g_ignflags,g_defbeh,g_syncfolders; // used only temporarily
 int m_comparing; // second and third bits mean done for each side
+
+// OPTIMIZED: Column sorting state
+int g_sort_column = -1;   // -1 = no sort active
+int g_sort_ascending = 1; // 1 = ascending, -1 = descending
 int m_comparing_pos,m_comparing_pos2;
 HWND m_listview;
 char m_inifile[2048];
@@ -296,6 +300,135 @@ int filenameCompareFunction(dirItem **a, dirItem **b)
   return result;
 }
 
+// OPTIMIZED: Pre-built text cache for O(1) lookups during sort
+static char **g_sort_text_cache = NULL;
+static int g_sort_text_cache_size = 0;
+
+static void freeSortTextCache()
+{
+  if (g_sort_text_cache)
+  {
+    for (int i = 0; i < g_sort_text_cache_size; i++)
+      free(g_sort_text_cache[i]);
+    free(g_sort_text_cache);
+    g_sort_text_cache = NULL;
+    g_sort_text_cache_size = 0;
+  }
+}
+
+static void buildSortTextCache(int col)
+{
+  freeSortTextCache();
+  int maxIdx = m_listview_recs.GetSize() / 2;
+  if (maxIdx <= 0) return;
+
+  g_sort_text_cache = (char **)calloc(maxIdx, sizeof(char *));
+  g_sort_text_cache_size = maxIdx;
+
+  int count = ListView_GetItemCount(m_listview);
+  for (int i = 0; i < count; i++)
+  {
+    LVITEM lvi;
+    memset(&lvi, 0, sizeof(lvi));
+    lvi.mask = LVIF_PARAM;
+    lvi.iItem = i;
+    ListView_GetItem(m_listview, &lvi);
+    int idx = (int)lvi.lParam / 2;
+    if (idx >= 0 && idx < maxIdx)
+    {
+      char buf[512];
+      buf[0] = 0;
+      ListView_GetItemText(m_listview, i, col, buf, sizeof(buf));
+      g_sort_text_cache[idx] = _strdup(buf);
+    }
+  }
+}
+
+// OPTIMIZED: ListView sort callback for column sorting
+static int CALLBACK listviewSortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
+{
+  int col = g_sort_column;
+  int dir = g_sort_ascending;
+  int result = 0;
+
+  switch (col)
+  {
+    case COL_FILENAME:
+    {
+      dirItem *local1 = m_listview_recs.Get((int)lParam1);
+      dirItem *remote1 = m_listview_recs.Get((int)lParam1 + 1);
+      dirItem *local2 = m_listview_recs.Get((int)lParam2);
+      dirItem *remote2 = m_listview_recs.Get((int)lParam2 + 1);
+      const char *name1 = local1 ? local1->relativeFileName.Get() : (remote1 ? remote1->relativeFileName.Get() : "");
+      const char *name2 = local2 ? local2->relativeFileName.Get() : (remote2 ? remote2->relativeFileName.Get() : "");
+      result = stricmp(name1, name2);
+      break;
+    }
+    case COL_STATUS:
+    case COL_ACTION:
+    {
+      int idx1 = (int)lParam1 / 2;
+      int idx2 = (int)lParam2 / 2;
+      const char *s1 = (idx1 >= 0 && idx1 < g_sort_text_cache_size && g_sort_text_cache[idx1])
+                       ? g_sort_text_cache[idx1] : "";
+      const char *s2 = (idx2 >= 0 && idx2 < g_sort_text_cache_size && g_sort_text_cache[idx2])
+                       ? g_sort_text_cache[idx2] : "";
+      result = stricmp(s1, s2);
+      break;
+    }
+    case COL_LOCALSIZE:
+    case COL_REMOTESIZE:
+    {
+      dirItem *local1 = m_listview_recs.Get((int)lParam1);
+      dirItem *remote1 = m_listview_recs.Get((int)lParam1 + 1);
+      dirItem *local2 = m_listview_recs.Get((int)lParam2);
+      dirItem *remote2 = m_listview_recs.Get((int)lParam2 + 1);
+      WDL_INT64 size1, size2;
+      if (col == COL_LOCALSIZE)
+      {
+        size1 = local1 ? local1->fileSize : -1;
+        size2 = local2 ? local2->fileSize : -1;
+      }
+      else
+      {
+        size1 = remote1 ? remote1->fileSize : -1;
+        size2 = remote2 ? remote2->fileSize : -1;
+      }
+      if (size1 < size2) result = -1;
+      else if (size1 > size2) result = 1;
+      else result = 0;
+      break;
+    }
+  }
+
+  return result * dir;
+}
+
+// OPTIMIZED: Set sort arrow on column header
+static void setSortArrow(HWND hListView, int column, int ascending)
+{
+  HWND hHeader = ListView_GetHeader(hListView);
+  if (!hHeader) return;
+
+  // Clear arrows on all columns
+  int colCount = Header_GetItemCount(hHeader);
+  for (int i = 0; i < colCount; i++)
+  {
+    HDITEM hdi = {};
+    hdi.mask = HDI_FORMAT;
+    Header_GetItem(hHeader, i, &hdi);
+    hdi.fmt &= ~(HDF_SORTDOWN | HDF_SORTUP);
+    Header_SetItem(hHeader, i, &hdi);
+  }
+
+  // Set arrow on active column
+  HDITEM hdi = {};
+  hdi.mask = HDI_FORMAT;
+  Header_GetItem(hHeader, column, &hdi);
+  hdi.fmt |= ascending > 0 ? HDF_SORTUP : HDF_SORTDOWN;
+  Header_SetItem(hHeader, column, &hdi);
+}
+
 void clearFileLists(HWND hwndDlg)
 {
   m_dirscanlist[0].Empty(true);
@@ -306,6 +439,26 @@ void clearFileLists(HWND hwndDlg)
   // dont clear m_listview_recs[], cause they are just references
   ListView_DeleteAllItems(m_listview);
   m_listview_recs.Empty();
+
+  // OPTIMIZED: Reset sort state and clear header arrows
+  g_sort_column = -1;
+  g_sort_ascending = 1;
+  if (m_listview)
+  {
+    HWND hHeader = ListView_GetHeader(m_listview);
+    if (hHeader)
+    {
+      int colCount = Header_GetItemCount(hHeader);
+      for (int i = 0; i < colCount; i++)
+      {
+        HDITEM hdi = {};
+        hdi.mask = HDI_FORMAT;
+        Header_GetItem(hHeader, i, &hdi);
+        hdi.fmt &= ~(HDF_SORTDOWN | HDF_SORTUP);
+        Header_SetItem(hHeader, i, &hdi);
+      }
+    }
+  }
 }
 
 BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -1302,7 +1455,29 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_NOTIFY:
       {
         LPNMHDR l=(LPNMHDR)lParam;
-        if (l->idFrom == IDC_LIST1 && l->code == NM_RCLICK && !m_comparing && ListView_GetSelectedCount(m_listview))
+        // OPTIMIZED: Column header click for sorting
+        if (l->idFrom == IDC_LIST1 && l->code == LVN_COLUMNCLICK && !m_comparing)
+        {
+          NMLISTVIEW *nm = (NMLISTVIEW *)lParam;
+          int col = nm->iSubItem;
+          if (col == g_sort_column)
+            g_sort_ascending = -g_sort_ascending;
+          else
+          {
+            g_sort_column = col;
+            g_sort_ascending = 1;
+          }
+          // Build text cache for Status/Action (O(n) once instead of O(n) per comparison)
+          if (col == COL_STATUS || col == COL_ACTION)
+            buildSortTextCache(col);
+          SendMessage(m_listview, WM_SETREDRAW, FALSE, 0);
+          ListView_SortItems(m_listview, listviewSortProc, 0);
+          SendMessage(m_listview, WM_SETREDRAW, TRUE, 0);
+          InvalidateRect(m_listview, NULL, TRUE);
+          setSortArrow(m_listview, g_sort_column, g_sort_ascending);
+          freeSortTextCache();
+        }
+        else if (l->idFrom == IDC_LIST1 && l->code == NM_RCLICK && !m_comparing && ListView_GetSelectedCount(m_listview))
         {
           HMENU h=LoadMenu(g_hInstance,MAKEINTRESOURCE(IDR_MENU1));
           if (h)

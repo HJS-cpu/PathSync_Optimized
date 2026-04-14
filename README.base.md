@@ -1,7 +1,9 @@
+{{MIRROR_HINT}}
+
 # PathSync Optimized
 
-[![Build Status](https://gitlab.com/HJS-cpu/pathsync-optimized/badges/main/pipeline.svg)](https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines)
-[![Latest Release](https://gitlab.com/HJS-cpu/pathsync-optimized/-/badges/release.svg)](https://gitlab.com/HJS-cpu/pathsync-optimized/-/releases)
+{{BADGE_BUILD}}
+{{BADGE_VERSION}}
 [![Live Website](https://img.shields.io/badge/Live_Website-hjs.page.gd-brightgreen)](https://hjs.page.gd/pso/)
 
 A modernized and optimized fork of **PathSync**, the lightweight file synchronization tool originally developed by Cockos Incorporated.
@@ -42,13 +44,13 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 **[➡️ Visit Live Website](https://hjs.page.gd/pso/)**
 
 ### 💾 **Desktop Application**
-**[⬇️ Download Latest Release](https://gitlab.com/HJS-cpu/pathsync-optimized/-/releases)**
+**[⬇️ Download Latest Release]({{RELEASES_URL}})**
 
 Available in two versions:
 - **Portable** — Single EXE, no installation needed. Just run it.
 - **Installer** — Setup with Start Menu shortcut and uninstaller.
 
-Or download the latest build artifacts from the [Pipelines](https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines) page.
+Or download the latest build artifacts from the [{{CI_NAME}}]({{CI_URL}}) page.
 
 ---
 
@@ -123,7 +125,7 @@ Modern SSDs can transfer data much faster than the original 128KB buffer allowed
 - Windows SDK
 
 ### Build via CI/CD
-Every push triggers an automatic build. Download artifacts from the [Pipelines](https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines) page.
+Every push triggers an automatic build. Download artifacts from the [{{CI_NAME}}]({{CI_URL}}) page.
 
 ### Manual Build
 ```batch

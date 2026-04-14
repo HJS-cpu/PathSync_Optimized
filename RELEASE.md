@@ -1,7 +1,3 @@
-## PathSync Optimized — File Synchronization Tool
-
-A modernized, optimized fork of [PathSync](https://www.cockos.com/pathsync/) by Cockos Incorporated.
-
 ### Downloads
 
 | Package | Description |
@@ -9,14 +5,10 @@ A modernized, optimized fork of [PathSync](https://www.cockos.com/pathsync/) by 
 | **PathSync-Portable.zip** | Standalone EXE — no installation needed, just extract and run |
 | **PathSync-Installer.zip** | NSIS setup with Start Menu shortcut and uninstaller |
 
-### What's New in v0.5.3
+### What's New in v0.5.4
 
-- **Website link** in Help menu (? → Website)
-- **Security hardening** — replaced all `sprintf` with `_snprintf` to prevent buffer overflows with long paths
-- **Fixed format string vulnerability** in log output
-- **Fixed `createdir` error reporting** — directory creation errors are now correctly detected and shown
-- **Removed deprecated Windows 9x compatibility code**
-- **Code quality** — fixed variable shadowing, reserved keyword usage, added bounds checks
+- **Column sorting** — click any column header to sort ascending/descending with arrow indicator
+- **Optimized sort performance** — pre-built text cache for efficient Status/Action column sorting
 
 ### Key Features
 

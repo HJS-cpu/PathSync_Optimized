@@ -1,0 +1,18 @@
+{
+  "gitlab": {
+    "badge_build": "[![Build Status](https://gitlab.com/HJS-cpu/pathsync-optimized/badges/main/pipeline.svg)](https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines)",
+    "badge_version": "[![Latest Release](https://gitlab.com/HJS-cpu/pathsync-optimized/-/badges/release.svg)](https://gitlab.com/HJS-cpu/pathsync-optimized/-/releases)",
+    "releases_url": "https://gitlab.com/HJS-cpu/pathsync-optimized/-/releases",
+    "ci_name": "Pipelines",
+    "ci_url": "https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines",
+    "mirror_hint": ""
+  },
+  "github": {
+    "badge_build": "[![Build Status](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml/badge.svg)](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml)",
+    "badge_version": "[![Latest Release](https://img.shields.io/github/v/release/HJS-cpu/PathSync_Optimized)](https://github.com/HJS-cpu/PathSync_Optimized/releases)",
+    "releases_url": "https://github.com/HJS-cpu/PathSync_Optimized/releases",
+    "ci_name": "Actions",
+    "ci_url": "https://github.com/HJS-cpu/PathSync_Optimized/actions",
+    "mirror_hint": "> **Note:** This is a mirror. The primary repository is on [GitLab](https://gitlab.com/HJS-cpu/pathsync-optimized)."
+  }
+}

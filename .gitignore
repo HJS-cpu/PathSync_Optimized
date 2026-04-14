@@ -6,3 +6,6 @@ build/
 PathSync/.vs/
 PathSync/build/
 *.user
+
+# Generated (platform-specific GitHub README)
+README.github.md

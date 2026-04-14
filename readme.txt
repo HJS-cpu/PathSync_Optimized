@@ -1,9 +1,13 @@
 PathSync Optimized
 ==================
-Current Version: v0.5.3
+Current Version: v0.5.4
 
 
 Version history:
+
+v0.5.4 (14/04/2026)
+  + Column sorting — click any column header to sort ascending/descending with arrow indicator
+  + Optimized sort performance with pre-built text cache for Status/Action columns
 
 v0.5.3 (13/03/2026)
   + Website link in Help menu (? → Website)
