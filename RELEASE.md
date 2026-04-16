@@ -5,10 +5,11 @@
 | **PathSync-Portable.zip** | Standalone EXE — no installation needed, just extract and run |
 | **PathSync-Installer.zip** | NSIS setup with Start Menu shortcut and uninstaller |
 
-### What's New in v0.5.4
+### What's New in v0.5.5
 
-- **Column sorting** — click any column header to sort ascending/descending with arrow indicator
-- **Optimized sort performance** — pre-built text cache for efficient Status/Action column sorting
+- **Added:** "Delete first" option — removes target files/folders before copying new ones. Saves space when the target disk is tight and avoids "disk full" errors during redistribution syncs.
+- **Fixed:** Sync errors when deleting folders after sorting the list by column header. The list is now always sorted in safe execution order (parent directories after their contents) before sync starts.
+- **Fixed:** Filename column sorting now preserves the parent-after-children invariant, so visual sorting matches safe deletion order.
 
 ### Key Features
 

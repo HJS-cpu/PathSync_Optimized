@@ -37,6 +37,7 @@
 #define IDC_INCLUDE_FILES               1020
 #define IDC_EXCLUDE_FILES               1021
 #define IDC_SYNC_FOLDERS                1021
+#define IDC_DELETE_FIRST                1038
 #define IDC_EXCLUDE_LABEL               1022
 #define IDC_LOCAL_LABEL                 1023
 #define IDC_IGNORE_LABEL                1024
@@ -70,7 +71,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40013
-#define _APS_NEXT_CONTROL_VALUE         1038
+#define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

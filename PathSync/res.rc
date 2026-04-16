@@ -44,8 +44,10 @@ BEGIN
                     IDC_DEFACTIONLABEL,14,30,162,12,SS_CENTERIMAGE
     COMBOBOX        IDC_DEFBEHAVIOR,181,30,206,181,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Sync folders",IDC_SYNC_FOLDERS,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,394,32,55,10
+    CONTROL         "Sync folders",IDC_SYNC_FOLDERS,"Button",BS_AUTOCHECKBOX |
+                    WS_TABSTOP,394,26,55,10
+    CONTROL         "Delete first",IDC_DELETE_FIRST,"Button",BS_AUTOCHECKBOX |
+                    WS_TABSTOP,394,36,55,10
     LTEXT           "Filename mask:",IDC_INCLUDE_LABEL,14,48,50,12,
                     SS_CENTERIMAGE
     EDITTEXT        IDC_INCLUDE_FILES,68,48,363,12,ES_AUTOHSCROLL

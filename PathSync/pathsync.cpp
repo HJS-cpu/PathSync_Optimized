@@ -1,4 +1,4 @@
-#define PATHSYNC_VER "v0.5.4 Optimized"
+#define PATHSYNC_VER "v0.5.5 Optimized"
 
 /*
     PathSync - pathsync.cpp
@@ -147,6 +147,12 @@ bool action_is_send(const char * str)
   return t == ACTION_TYPE_SEND || t == ACTION_TYPE_SEND_CREATE || t == ACTION_TYPE_SEND_DELETE;
 }
 
+bool action_is_delete(const char * str)
+{
+  ActionType t = get_action_type(str);
+  return t == ACTION_TYPE_RECV_DELETE || t == ACTION_TYPE_SEND_DELETE;
+}
+
 #define COL_FILENAME  0
 #define COL_STATUS  1
 #define COL_ACTION  2
@@ -208,7 +214,7 @@ DWORD g_throttle_sttime;
 WDL_INT64 g_throttle_bytes;
 int g_numfilesindir;
 
-const int endislist[]={IDC_STATS,IDC_PATH1,IDC_PATH2,IDC_BROWSE1,IDC_BROWSE2,IDC_IGNORE_SIZE,IDC_IGNORE_DATE,IDC_IGNORE_MISSLOCAL,IDC_IGNORE_MISSREMOTE,IDC_DEFBEHAVIOR,IDC_LOG,IDC_LOGPATH,IDC_LOGBROWSE, IDC_LOCAL_LABEL, IDC_REMOTE_LABEL, IDC_DEFACTIONLABEL, IDC_LOGFILENAMELABEL, IDC_IGNORE_LABEL, IDC_INCLUDE_LABEL, IDC_INCLUDE_FILES, IDC_MASKHELP, IDC_SYNC_FOLDERS};
+const int endislist[]={IDC_STATS,IDC_PATH1,IDC_PATH2,IDC_BROWSE1,IDC_BROWSE2,IDC_IGNORE_SIZE,IDC_IGNORE_DATE,IDC_IGNORE_MISSLOCAL,IDC_IGNORE_MISSREMOTE,IDC_DEFBEHAVIOR,IDC_LOG,IDC_LOGPATH,IDC_LOGBROWSE, IDC_LOCAL_LABEL, IDC_REMOTE_LABEL, IDC_DEFACTIONLABEL, IDC_LOGFILENAMELABEL, IDC_IGNORE_LABEL, IDC_INCLUDE_LABEL, IDC_INCLUDE_FILES, IDC_MASKHELP, IDC_SYNC_FOLDERS, IDC_DELETE_FIRST};
 
 bool isDirectory(const char * filename)
 {
@@ -323,6 +329,7 @@ static void buildSortTextCache(int col)
   if (maxIdx <= 0) return;
 
   g_sort_text_cache = (char **)calloc(maxIdx, sizeof(char *));
+  if (!g_sort_text_cache) return; // OOM — skip cache, sort callbacks fall back to empty strings
   g_sort_text_cache_size = maxIdx;
 
   int count = ListView_GetItemCount(m_listview);
@@ -362,6 +369,14 @@ static int CALLBACK listviewSortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lPar
       const char *name1 = local1 ? local1->relativeFileName.Get() : (remote1 ? remote1->relativeFileName.Get() : "");
       const char *name2 = local2 ? local2->relativeFileName.Get() : (remote2 ? remote2->relativeFileName.Get() : "");
       result = stricmp(name1, name2);
+      // Keep parent directories after their contents — required for correct deletion order
+      if (result != 0)
+      {
+        if (isDirectory(name1) && !strnicmp(name2, name1, strlen(name1)))
+          result = 1;
+        else if (isDirectory(name2) && !strnicmp(name1, name2, strlen(name2)))
+          result = -1;
+      }
       break;
     }
     case COL_STATUS:
@@ -402,6 +417,24 @@ static int CALLBACK listviewSortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lPar
   }
 
   return result * dir;
+}
+
+// "Delete first" mode — groups delete operations before everything else,
+// with filename parent-after-children order as tiebreaker within each group.
+// Requires g_sort_text_cache to be built for COL_ACTION before calling.
+static int CALLBACK deleteFirstSortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
+{
+  int idx1 = (int)lParam1 / 2;
+  int idx2 = (int)lParam2 / 2;
+  const char *a1 = (idx1 >= 0 && idx1 < g_sort_text_cache_size && g_sort_text_cache[idx1])
+                   ? g_sort_text_cache[idx1] : "";
+  const char *a2 = (idx2 >= 0 && idx2 < g_sort_text_cache_size && g_sort_text_cache[idx2])
+                   ? g_sort_text_cache[idx2] : "";
+  int d1 = action_is_delete(a1) ? 0 : 1;
+  int d2 = action_is_delete(a2) ? 0 : 1;
+  if (d1 != d2) return d1 - d2;
+
+  return listviewSortProc(lParam1, lParam2, lParamSort);
 }
 
 // OPTIMIZED: Set sort arrow on column header
@@ -765,6 +798,8 @@ int load_settings(HWND hwndDlg, char *sec, char *fn) // return version
   GetPrivateProfileString(sec,"logpath","",path,sizeof(path),fn);
   int syncfolders=GetPrivateProfileInt(sec,"syncfolders",1,fn);
   CheckDlgButton(hwndDlg,IDC_SYNC_FOLDERS,syncfolders?BST_CHECKED:BST_UNCHECKED);
+  int deletefirst=GetPrivateProfileInt(sec,"deletefirst",0,fn);
+  CheckDlgButton(hwndDlg,IDC_DELETE_FIRST,deletefirst?BST_CHECKED:BST_UNCHECKED);
 
   if (strlen(path) && path[0] != '!')
   {
@@ -805,9 +840,9 @@ void save_settings(HWND hwndDlg, char *sec, char *fn)
 
   if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_MISSLOCAL)) ignflags |= 4;
   if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_MISSREMOTE)) ignflags |= 8;
-  wsprintf(path,"%d",ignflags);
-  WritePrivateProfileString(sec,"ignflags",path,fn);       
-  wsprintf(path,"%d",SendDlgItemMessage(hwndDlg,IDC_DEFBEHAVIOR,CB_GETCURSEL,0,0));
+  _snprintf(path,sizeof(path),"%d",ignflags);
+  WritePrivateProfileString(sec,"ignflags",path,fn);
+  _snprintf(path,sizeof(path),"%d",(int)SendDlgItemMessage(hwndDlg,IDC_DEFBEHAVIOR,CB_GETCURSEL,0,0));
   WritePrivateProfileString(sec,"defbeh",path,fn);
 
   if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_LOG)))
@@ -824,13 +859,17 @@ void save_settings(HWND hwndDlg, char *sec, char *fn)
   GetDlgItemText(hwndDlg,IDC_INCLUDE_FILES,path,sizeof(path));
   WritePrivateProfileString(sec,"include",path,fn);
 
-  wsprintf(path,"%d",g_throttlespd);
+  _snprintf(path,sizeof(path),"%d",g_throttlespd);
   WritePrivateProfileString(sec,"throttlespd", path,fn);
   WritePrivateProfileString(sec,"throttle", g_throttle?"1":"0",fn);
 
   int syncfolders=IsDlgButtonChecked(hwndDlg, IDC_SYNC_FOLDERS);
-  wsprintf(path,"%d",syncfolders);
+  _snprintf(path,sizeof(path),"%d",syncfolders);
   ::WritePrivateProfileString(sec, "syncfolders", path, fn);
+
+  int deletefirst=IsDlgButtonChecked(hwndDlg, IDC_DELETE_FIRST);
+  _snprintf(path,sizeof(path),"%d",deletefirst);
+  ::WritePrivateProfileString(sec, "deletefirst", path, fn);
 }
 
 /* OPTIMIZED: Save window position and size to INI file */
@@ -841,15 +880,15 @@ void save_window_position(HWND hwndDlg, char *fn)
   if (GetWindowPlacement(hwndDlg, &wp))
   {
     char buf[32];
-    wsprintf(buf, "%d", wp.rcNormalPosition.left);
+    _snprintf(buf, sizeof(buf), "%d", (int)wp.rcNormalPosition.left);
     WritePrivateProfileString("window", "left", buf, fn);
-    wsprintf(buf, "%d", wp.rcNormalPosition.top);
+    _snprintf(buf, sizeof(buf), "%d", (int)wp.rcNormalPosition.top);
     WritePrivateProfileString("window", "top", buf, fn);
-    wsprintf(buf, "%d", wp.rcNormalPosition.right - wp.rcNormalPosition.left);
+    _snprintf(buf, sizeof(buf), "%d", (int)(wp.rcNormalPosition.right - wp.rcNormalPosition.left));
     WritePrivateProfileString("window", "width", buf, fn);
-    wsprintf(buf, "%d", wp.rcNormalPosition.bottom - wp.rcNormalPosition.top);
+    _snprintf(buf, sizeof(buf), "%d", (int)(wp.rcNormalPosition.bottom - wp.rcNormalPosition.top));
     WritePrivateProfileString("window", "height", buf, fn);
-    wsprintf(buf, "%d", (wp.showCmd == SW_MAXIMIZE) ? 1 : 0);
+    _snprintf(buf, sizeof(buf), "%d", (wp.showCmd == SW_MAXIMIZE) ? 1 : 0);
     WritePrivateProfileString("window", "maximized", buf, fn);
   }
 }
@@ -949,6 +988,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         resizer.init_item(IDC_MASKHELP,1,0,1,0);
         resizer.init_item(IDC_LOGBROWSE,1,0,1,0);//BU added
         resizer.init_item(IDC_SYNC_FOLDERS, 1.0, 0, 1.0, 0);// AD added
+        resizer.init_item(IDC_DELETE_FIRST, 1.0, 0, 1.0, 0);
 
         SetWindowText(hwndDlg,"PathSync " PATHSYNC_VER " - Analysis");
       
@@ -1416,6 +1456,26 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case IDC_GO:
           if (ListView_GetItemCount(m_listview))
           {
+            // Force safe execution order: sort by filename ascending so parent
+            // directories are deleted after their contents (see listviewSortProc).
+            // If "Delete first" is enabled, group all deletes before copies.
+            g_sort_column = COL_FILENAME;
+            g_sort_ascending = 1;
+            SendMessage(m_listview, WM_SETREDRAW, FALSE, 0);
+            if (IsDlgButtonChecked(hwndDlg, IDC_DELETE_FIRST))
+            {
+              buildSortTextCache(COL_ACTION);
+              ListView_SortItems(m_listview, deleteFirstSortProc, 0);
+              freeSortTextCache();
+            }
+            else
+            {
+              ListView_SortItems(m_listview, listviewSortProc, 0);
+            }
+            SendMessage(m_listview, WM_SETREDRAW, TRUE, 0);
+            InvalidateRect(m_listview, NULL, TRUE);
+            setSortArrow(m_listview, COL_FILENAME, 1);
+
             if (!g_autorun) // no need for duplicate request to run during autorun
             {
               RestartLogging(hwndDlg);

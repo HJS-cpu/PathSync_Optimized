@@ -152,6 +152,12 @@ Based on the original PathSync source code by Cockos Incorporated.
 
 ## 📝 Changelog
 
+### v0.5.5 (16.04.2026)
+- Added: "Delete first" option — removes target files/folders before copying new ones (saves space on tight targets)
+- Fixed: Sync errors when deleting folders after sorting the list by column header
+- Fixed: List is now always sorted in safe execution order (parent directories after their contents) before sync starts
+- Fixed: Filename column sorting now preserves the parent-after-children invariant
+
 ### v0.5.4 (14.04.2026)
 - Added: Column sorting — click any column header to sort ascending/descending with arrow indicator
 - Improved: Optimized sort performance with pre-built text cache for Status/Action columns
