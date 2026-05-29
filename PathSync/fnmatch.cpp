@@ -28,7 +28,7 @@ Cambridge, MA 02139, USA.  */
    to lower case.  Under Windows NT, / and \ are both path component
    separators, so FOLD_FN_CHAR would map them both to /.  */
 #ifndef FOLD_FN_CHAR
-#define FOLD_FN_CHAR(c) toupper(c)
+#define FOLD_FN_CHAR(c) toupper((unsigned char)(c))
 #endif
 
 /* IGNORE(@ */

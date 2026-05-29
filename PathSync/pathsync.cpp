@@ -1,4 +1,4 @@
-#define PATHSYNC_VER "v0.5.5 Optimized"
+#define PATHSYNC_VER "v0.5.6 Optimized"
 
 /*
     PathSync - pathsync.cpp
@@ -666,7 +666,7 @@ BOOL systray_mod(HWND hwnd, UINT uID, LPSTR lpszTip) {
   tnid.hWnd = hwnd;
   tnid.uID = uID;
   tnid.uFlags = NIF_TIP;
-  strncpy(tnid.szTip,lpszTip,sizeof(tnid.szTip)-1);
+  lstrcpyn(tnid.szTip,lpszTip,sizeof(tnid.szTip)-1);
   return (Shell_NotifyIcon(NIM_MODIFY, &tnid));
 }
 
@@ -1170,7 +1170,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
               /* It's a folder - add trailing backslash if missing */
               int len = strlen(buf);
-              if (len > 0 && buf[len-1] != '\\' && buf[len-1] != '/')
+              if (len > 0 && len < (int)sizeof(buf)-1 && buf[len-1] != '\\' && buf[len-1] != '/')
               {
                 buf[len] = '\\';
                 buf[len+1] = 0;
@@ -2181,10 +2181,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
       char parm[2048];
       int parm_pos=0,qs=0;
 
-      while (isspace(*p)) p++;
+      while (isspace((unsigned char)*p)) p++;
       if (!*p) break;
 
-      while (*p && (!isspace(*p) || qs))
+      while (*p && (!isspace((unsigned char)*p) || qs))
       {
         if (*p == '\"') qs=!qs;
         else if (parm_pos < (int)sizeof(parm)-1) parm[parm_pos++]=*p;       

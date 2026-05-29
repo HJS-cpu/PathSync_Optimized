@@ -5,11 +5,11 @@
 | **PathSync-Portable.zip** | Standalone EXE — no installation needed, just extract and run |
 | **PathSync-Installer.zip** | NSIS setup with Start Menu shortcut and uninstaller |
 
-### What's New in v0.5.5
+### What's New in v0.5.6
 
-- **Added:** "Delete first" option — removes target files/folders before copying new ones. Saves space when the target disk is tight and avoids "disk full" errors during redistribution syncs.
-- **Fixed:** Sync errors when deleting folders after sorting the list by column header. The list is now always sorted in safe execution order (parent directories after their contents) before sync starts.
-- **Fixed:** Filename column sorting now preserves the parent-after-children invariant, so visual sorting matches safe deletion order.
+- **Fixed:** Potential out-of-bounds write when dropping a file with a very long path onto a path field (stack buffer hardening).
+- **Fixed:** System tray tooltip could read past its buffer due to missing null-termination.
+- **Fixed:** Filename mask matching and command-line parsing now handle non-ASCII (UTF-8) characters safely.
 
 ### Key Features
 

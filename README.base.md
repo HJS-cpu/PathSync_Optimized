@@ -152,6 +152,11 @@ Based on the original PathSync source code by Cockos Incorporated.
 
 ## 📝 Changelog
 
+### v0.5.6 (29.05.2026)
+- Fixed: Potential out-of-bounds write when dropping a file with a very long path onto a path field
+- Fixed: System tray tooltip could read past its buffer (missing null-termination)
+- Fixed: Filename mask matching and command-line parsing now handle non-ASCII (UTF-8) characters safely
+
 ### v0.5.5 (16.04.2026)
 - Added: "Delete first" option — removes target files/folders before copying new ones (saves space on tight targets)
 - Fixed: Sync errors when deleting folders after sorting the list by column header

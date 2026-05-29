@@ -1,9 +1,14 @@
 PathSync Optimized
 ==================
-Current Version: v0.5.5
+Current Version: v0.5.6
 
 
 Version history:
+
+v0.5.6 (29/05/2026)
+  + Fixed potential out-of-bounds write when dropping a file with a very long path onto a path field
+  + Fixed system tray tooltip reading past its buffer (missing null-termination)
+  + Filename mask matching and command-line parsing now handle non-ASCII (UTF-8) characters safely
 
 v0.5.5 (16/04/2026)
   + "Delete first" option — removes target files/folders before copying new ones (saves space on tight targets)
