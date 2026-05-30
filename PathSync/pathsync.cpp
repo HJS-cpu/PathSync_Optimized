@@ -759,7 +759,8 @@ void parse_pattern_list(HWND hwndDlg, char *str, WDL_PtrList<WDL_String> *list)
       p++;
       continue;
     }
-    *d++ = *p++;
+    if (d < pattern + sizeof(pattern) - 1) *d++ = *p++; // bound the write cursor
+    else p++; // segment longer than buffer: truncate instead of overflowing
   }
   if (*pattern) 
   { 
@@ -1467,7 +1468,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case IDC_BROWSE1:
         case IDC_BROWSE2:
           {
-            char name[1024];
+            char name[1024]="";
             char oldpath[MAX_PATH];
 
             // Modified 10/24/2006 J. Puhlmann
@@ -1476,16 +1477,13 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             GetDlgItemText(hwndDlg,LOWORD(wParam) == IDC_BROWSE1 ? IDC_PATH1 : IDC_PATH2, oldpath, sizeof(oldpath));
             BROWSEINFO bi={hwndDlg,NULL,name,"Choose a Directory",BIF_RETURNONLYFSDIRS,MyBrowseCallbackProc,(LPARAM) oldpath};
 
-            ITEMIDLIST *id=SHBrowseForFolder(&bi);
+            ITEMIDLIST *id=SHBrowseForFolderUTF8(&bi);
             if (id)
             {
-              SHGetPathFromIDList( id, name );        
+              if (!SHGetPathFromIDListUTF8(id, name, sizeof(name))) name[0]=0;        
 
-              IMalloc *m;
-              SHGetMalloc(&m);
-              m->Free(id);
               SetDlgItemText(hwndDlg,LOWORD(wParam) == IDC_BROWSE1 ? IDC_PATH1 : IDC_PATH2, name);
-              m->Release();
+              CoTaskMemFree(id);
             }
           }
         break;            
@@ -2606,6 +2604,9 @@ void updateXferStatus(HWND hwndDlg)
   WDL_INT64 bytesleft = m_total_copy_size - m_copy_bytestotalsofar;
   int pred_t = 0;
   if (m_copy_bytestotalsofar) pred_t = (int) ((t/1000) * m_total_copy_size / m_copy_bytestotalsofar);
+  // signed remaining seconds, clamped: avoids unsigned wrap when copied bytes exceed the estimate
+  int remain = pred_t - (int)(t/1000);
+  if (remain < 0) remain = 0;
 
   SendDlgItemMessage(hwndDlg,IDC_TOTALPROGRESS,PBM_SETPOS,v,0);
   char tmp1[128],tmp2[128],tmp3[128];
@@ -2620,7 +2621,7 @@ void updateXferStatus(HWND hwndDlg)
     tmp3,
     m_copy_deletes,m_copy_deletes==1?"":"s",m_copy_deletes==1?"":"s",
     t/60000,(t/1000)%60,
-    (pred_t-t/1000)/60,(pred_t-t/1000)%60);
+    remain/60,remain%60);
   buf[sizeof(buf)-1]=0;
   SetDlgItemText(hwndDlg,IDC_TOTALPOS,p);
   if (g_intray)

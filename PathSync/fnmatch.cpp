@@ -138,7 +138,7 @@ fnmatch (pattern, string, flags)
 		    c = *p++;
 		  }
 
-		if (*n >= cstart && *n <= cend)
+		if (FOLD_FN_CHAR (*n) >= FOLD_FN_CHAR (cstart) && FOLD_FN_CHAR (*n) <= FOLD_FN_CHAR (cend))
 		  goto matched;
 
 		if (c == ']')
