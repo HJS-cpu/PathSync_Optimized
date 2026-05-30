@@ -59,6 +59,54 @@ static DWORD GetFileAttributesUTF8(const char *path)
   return GetFileAttributesA(path);
 }
 
+/* OPTIMIZED: UTF-8 -> wide helper for the few Win32 APIs WDL does not hook. Caller frees. */
+static WCHAR *utf8_to_wide(const char *s)
+{
+  if (!s) return NULL;
+  int wl = MultiByteToWideChar(CP_UTF8, 0, s, -1, NULL, 0);
+  if (wl <= 0) return NULL;
+  WCHAR *w = (WCHAR *)malloc(wl * sizeof(WCHAR));
+  if (!w) return NULL;
+  MultiByteToWideChar(CP_UTF8, 0, s, -1, w, wl);
+  return w;
+}
+
+/* Clear read-only/hidden/system so DeleteFile/MoveFile/RemoveDirectory cannot fail with
+   ERROR_ACCESS_DENIED. Accepts a UTF-8 (optionally long-path-prefixed) path. */
+static void clearReadonlyAttr(const char *path)
+{
+  DWORD a = GetFileAttributesUTF8(path);
+  if (a == INVALID_FILE_ATTRIBUTES) return;
+  DWORD na = a & ~(DWORD)(FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM);
+  if (na != a)
+  {
+    WCHAR *w = utf8_to_wide(path);
+    if (w) { SetFileAttributesW(w, na); free(w); }
+  }
+}
+
+/* ShellExecuteEx is NOT UTF-8 hooked by WDL (only the simple ShellExecute is), so do the
+   wide conversion ourselves to support non-ASCII paths. The verb is always "open". */
+static BOOL shellOpenUTF8(const char *file, const char *params)
+{
+  WCHAR *wfile = utf8_to_wide(file);
+  WCHAR *wparams = params ? utf8_to_wide(params) : NULL;
+  BOOL r = FALSE;
+  if (wfile)
+  {
+    SHELLEXECUTEINFOW sei = { sizeof(sei) };
+    sei.fMask = 0;
+    sei.nShow = SW_SHOWNORMAL;
+    sei.lpVerb = L"open";
+    sei.lpFile = wfile;
+    sei.lpParameters = wparams;
+    r = ShellExecuteExW(&sei);
+  }
+  free(wfile);
+  free(wparams);
+  return r;
+}
+
 #include "../WDL/ptrlist.h"
 #include "../WDL/wdlstring.h"
 #include "../WDL/dirscan.h"
@@ -845,7 +893,7 @@ void save_settings(HWND hwndDlg, char *sec, char *fn)
   _snprintf(path,sizeof(path),"%d",(int)SendDlgItemMessage(hwndDlg,IDC_DEFBEHAVIOR,CB_GETCURSEL,0,0));
   WritePrivateProfileString(sec,"defbeh",path,fn);
 
-  if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_LOG)))
+  if (IsDlgButtonChecked(hwndDlg, IDC_LOG))
   {
     GetDlgItemText(hwndDlg, IDC_LOGPATH, path, sizeof(path));
     WritePrivateProfileString(sec, "logpath", path, fn);
@@ -1143,6 +1191,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if (!g_copydlg && !m_comparing) InsertMenu(popup, -1, MF_STRING|MF_BYCOMMAND, CMD_EXITPATHSYNC, "&Exit PathSync");
             SetMenuDefaultItem(popup, g_intray ? CMD_SHOWWINDOWFROMTRAY : CMD_EXITPATHSYNC, FALSE);
             TrackPopupMenuEx(popup, TPM_LEFTALIGN|TPM_LEFTBUTTON, pt.x, pt.y, g_dlg, NULL);
+            DestroyMenu(popup);
           }
         return 0;
       }
@@ -1697,13 +1746,13 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     param2.Set(param1.Get());
                   }
 
-                  SHELLEXECUTEINFO sei = { sizeof(sei) };
-                  sei.fMask = 0;
-                  sei.nShow = SW_SHOWNORMAL;
-                  sei.lpVerb = "open";
-                  sei.lpFile = path;
-                  sei.lpParameters = param2.Get();
-                  ShellExecuteEx(&sei);
+                  if (!shellOpenUTF8(path, param2.Get()))
+                  {
+                    WDL_String em("Error launching diff tool: ");
+                    em.Append(path);
+                    LogMessage(em.Get());
+                    MessageBox(hwndDlg, em.Get(), "PathSync", MB_OK|MB_ICONWARNING);
+                  }
                 }
                 break;
 
@@ -1718,12 +1767,13 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   gs.Append(PREF_DIRSTR);
                   gs.Append(buf);
 
-                  SHELLEXECUTEINFO sei = { sizeof(sei) };
-                  sei.fMask = 0;
-                  sei.nShow = SW_SHOWNORMAL;
-                  sei.lpVerb = "open";
-                  sei.lpFile = gs.Get();
-                  ShellExecuteEx(&sei);
+                  if (!shellOpenUTF8(gs.Get(), NULL))
+                  {
+                    WDL_String em("Error opening: ");
+                    em.Append(gs.Get());
+                    LogMessage(em.Get());
+                    MessageBox(hwndDlg, em.Get(), "PathSync", MB_OK|MB_ICONWARNING);
+                  }
                 }
                 break;
 
@@ -1738,12 +1788,13 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   gs.Append(PREF_DIRSTR);
                   gs.Append(buf);
 
-                  SHELLEXECUTEINFO sei = { sizeof(sei) };
-                  sei.fMask = 0;
-                  sei.nShow = SW_SHOWNORMAL;
-                  sei.lpVerb = "open";
-                  sei.lpFile = gs.Get();
-                  ShellExecuteEx(&sei);
+                  if (!shellOpenUTF8(gs.Get(), NULL))
+                  {
+                    WDL_String em("Error opening: ");
+                    em.Append(gs.Get());
+                    LogMessage(em.Get());
+                    MessageBox(hwndDlg, em.Get(), "PathSync", MB_OK|MB_ICONWARNING);
+                  }
                 }
                 break;
               }
@@ -2439,9 +2490,9 @@ class fileCopier
       if (r < sizeof(buf)) // eof!
       {
         if (m_filesize < 16384) g_throttle_bytes+=16384;
-        FILETIME ft;
-        GetFileTime(m_srcFile->GetHandle(),NULL,NULL,&ft);
-        SetFileTime(m_dstFile->GetHandle(),NULL,NULL,&ft);
+        FILETIME ft = {0,0};
+        if (GetFileTime(m_srcFile->GetHandle(),NULL,NULL,&ft))
+          SetFileTime(m_dstFile->GetHandle(),NULL,NULL,&ft);
         delete m_srcFile;
         m_srcFile=0;
         delete m_dstFile;
@@ -2466,7 +2517,9 @@ class fileCopier
         // OPTIMIZED: Long path support for MoveFile/DeleteFile
         WDL_String destSaveLong;
         make_long_path(&destSaveLong, destSave.Get());
-        
+
+        if (fileExists) clearReadonlyAttr(fulldestLong.Get());
+
         if (!fileExists || MoveFile(fulldestLong.Get(),destSaveLong.Get()))
         {
           if (MoveFile(m_tmpdestfn.Get(),fulldestLong.Get()))
@@ -2736,6 +2789,7 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 
                 if (isDirectory(filename))
                 {
+                  clearReadonlyAttr(gsLong.Get());
                   if (!RemoveDirectory(gsLong.Get()))
                   {
                     WDL_String news("Error removing");
@@ -2755,6 +2809,7 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
                 else
                 {
+                  clearReadonlyAttr(gsLong.Get());
                   if (!DeleteFile(gsLong.Get()))
                   {
                     WDL_String news("Error removing ");
