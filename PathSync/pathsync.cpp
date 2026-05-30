@@ -221,7 +221,7 @@ public:
 };
 
 
-char *g_syncactions[]=
+static const char * const g_syncactions[]=
 {
   "Bidirectional (default)",
   ACTION_SEND " (do not delete missing files/folders)",
@@ -315,18 +315,6 @@ void make_long_path(WDL_String *dest, const char* path)
   {
     dest->Set(path);
   }
-}
-
-const char *stristr(const char *a, const char *b)
-{
-  int bl = strlen(b);
-  while (*a)
-  {
-    if (!strnicmp(a,b,bl)) return a;
-    a++;
-  }
-  return NULL;
-
 }
 
 int filenameCompareFunction(dirItem **a, dirItem **b)
@@ -489,13 +477,11 @@ static int CALLBACK deleteFirstSortProc(LPARAM lParam1, LPARAM lParam2, LPARAM l
   return listviewSortProc(lParam1, lParam2, lParamSort);
 }
 
-// OPTIMIZED: Set sort arrow on column header
-static void setSortArrow(HWND hListView, int column, int ascending)
+// OPTIMIZED: clear the sort arrows on every column header (shared by setSortArrow + clearFileLists)
+static void clearSortArrows(HWND hListView)
 {
   HWND hHeader = ListView_GetHeader(hListView);
   if (!hHeader) return;
-
-  // Clear arrows on all columns
   int colCount = Header_GetItemCount(hHeader);
   for (int i = 0; i < colCount; i++)
   {
@@ -505,6 +491,15 @@ static void setSortArrow(HWND hListView, int column, int ascending)
     hdi.fmt &= ~(HDF_SORTDOWN | HDF_SORTUP);
     Header_SetItem(hHeader, i, &hdi);
   }
+}
+
+// OPTIMIZED: Set sort arrow on column header
+static void setSortArrow(HWND hListView, int column, int ascending)
+{
+  HWND hHeader = ListView_GetHeader(hListView);
+  if (!hHeader) return;
+
+  clearSortArrows(hListView);
 
   // Set arrow on active column
   HDITEM hdi = {};
@@ -528,22 +523,7 @@ void clearFileLists(HWND hwndDlg)
   // OPTIMIZED: Reset sort state and clear header arrows
   g_sort_column = -1;
   g_sort_ascending = 1;
-  if (m_listview)
-  {
-    HWND hHeader = ListView_GetHeader(m_listview);
-    if (hHeader)
-    {
-      int colCount = Header_GetItemCount(hHeader);
-      for (int i = 0; i < colCount; i++)
-      {
-        HDITEM hdi = {};
-        hdi.mask = HDI_FORMAT;
-        Header_GetItem(hHeader, i, &hdi);
-        hdi.fmt &= ~(HDF_SORTDOWN | HDF_SORTUP);
-        Header_SetItem(hHeader, i, &hdi);
-      }
-    }
-  }
+  if (m_listview) clearSortArrows(m_listview);
 }
 
 BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -817,19 +797,25 @@ void enableAllButtonsInList(HWND hwndDlg)
     EnableOrDisableLoggingControls(hwndDlg);
 }
 
+// Shared analyze teardown: re-enable redraw, stop the scan timer, reset button/state/systray.
+static void finishAnalysis(HWND dlg, const char *statusText)
+{
+  SendMessage(m_listview, WM_SETREDRAW, TRUE, 0);
+  InvalidateRect(m_listview, NULL, TRUE);
+  KillTimer(dlg, 32);
+  SetDlgItemText(dlg, IDC_ANALYZE, "Analyze!");
+  SetDlgItemText(dlg, IDC_STATUS, statusText);
+  m_comparing = 0;
+  enableAllButtonsInList(dlg);
+  free_pattern_list(&m_include_files);
+  systray_mod(dlg, 0, "PathSync");
+  g_lasttraypercent = -1;
+}
+
 void stopAnalyzeAndClearList(HWND hwndDlg)
 {
   if (m_comparing)
-  {
-    KillTimer(hwndDlg,32);
-    SetDlgItemText(hwndDlg,IDC_ANALYZE,"Analyze!");
-    SetDlgItemText(hwndDlg,IDC_STATUS,"Status: Stopped");
-    m_comparing=0;
-    enableAllButtonsInList(hwndDlg);
-    free_pattern_list(&m_include_files);
-    systray_mod(hwndDlg, 0, "PathSync");
-    g_lasttraypercent = -1;
-  }
+    finishAnalysis(hwndDlg, "Status: Stopped");
   clearFileLists(hwndDlg);
   SetDlgItemText(hwndDlg,IDC_STATS,"");
   SetDlgItemText(hwndDlg,IDC_STATUS,"");
@@ -883,6 +869,21 @@ int load_settings(HWND hwndDlg, char *sec, char *fn) // return version
 }
 
 
+// Assemble the ignore-flags bitmask from the four ignore checkboxes (shared by save + analyze).
+static int computeIgnFlags(HWND hwndDlg)
+{
+  int f = 0;
+  if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_SIZE)) f |= 1;
+  if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_DATE))
+  {
+    if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_DATE) == BST_INDETERMINATE) f |= 16;
+    else f |= 2;
+  }
+  if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_MISSLOCAL)) f |= 4;
+  if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_MISSREMOTE)) f |= 8;
+  return f;
+}
+
 void save_settings(HWND hwndDlg, char *sec, char *fn)
 {
   char path[2048];
@@ -892,16 +893,7 @@ void save_settings(HWND hwndDlg, char *sec, char *fn)
   WritePrivateProfileString(sec,"path1",path,fn);
   GetDlgItemText(hwndDlg,IDC_PATH2,path,sizeof(path));
   WritePrivateProfileString(sec,"path2",path,fn);
-  int ignflags=0;
-  if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_SIZE)) ignflags |= 1;
-  if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_DATE)) 
-  {
-    if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_DATE) == BST_INDETERMINATE) ignflags |= 16;
-    else ignflags |= 2;
-  }
-
-  if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_MISSLOCAL)) ignflags |= 4;
-  if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_MISSREMOTE)) ignflags |= 8;
+  int ignflags=computeIgnFlags(hwndDlg);
   _snprintf(path,sizeof(path),"%d",ignflags);
   WritePrivateProfileString(sec,"ignflags",path,fn);
   _snprintf(path,sizeof(path),"%d",(int)SendDlgItemMessage(hwndDlg,IDC_DEFBEHAVIOR,CB_GETCURSEL,0,0));
@@ -1007,20 +999,7 @@ void EnableOrDisableLoggingControls(HWND hwndDlg)
 void cancel_analysis(HWND dlg)
 {
   if (m_comparing)
-  {
-    // OPTIMIZED: Re-enable ListView redraw if analysis was running
-    SendMessage(m_listview, WM_SETREDRAW, TRUE, 0);
-    InvalidateRect(m_listview, NULL, TRUE);
-    
-    KillTimer(dlg,32);
-    SetDlgItemText(dlg,IDC_ANALYZE,"Analyze!");
-    SetDlgItemText(dlg,IDC_STATUS,"Status: Stopped");
-    m_comparing=0;
-    enableAllButtonsInList(dlg);
-    free_pattern_list(&m_include_files);
-    systray_mod(dlg, 0, "PathSync");
-    g_lasttraypercent = -1;
-  }
+    finishAnalysis(dlg, "Status: Stopped");
   if (g_autorun) PostQuitMessage(1);
 }
 
@@ -1182,6 +1161,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
       systray_del(hwndDlg, 0);
       save_window_position(hwndDlg, m_inifile);
       save_settings(hwndDlg,"config",m_inifile);
+      if (g_log) { fclose(g_log); g_log = 0; } // close log deterministically on shutdown
     return 0;
     case WM_SYSTRAY: 
       switch (LOWORD(lParam))
@@ -1379,15 +1359,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             LogMessage("Analysis");
             systray_mod(hwndDlg, 0, "PathSync - Analysis in progress");
 
-            g_ignflags=0;
-            if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_SIZE)) g_ignflags |= 1;
-            if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_DATE)) 
-            {
-              if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_DATE) == BST_INDETERMINATE) g_ignflags |= 16;
-              else g_ignflags |= 2;
-            }
-            if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_MISSLOCAL)) g_ignflags |= 4;
-            if (IsDlgButtonChecked(hwndDlg,IDC_IGNORE_MISSREMOTE)) g_ignflags |= 8;
+            g_ignflags=computeIgnFlags(hwndDlg);
             g_defbeh=SendDlgItemMessage(hwndDlg,IDC_DEFBEHAVIOR,CB_GETCURSEL,0,0);
             g_syncfolders=IsDlgButtonChecked(hwndDlg,IDC_SYNC_FOLDERS);
 
@@ -1771,26 +1743,6 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 break;
 
                 case IDM_OPENLOCAL:
-                {
-                  char buf[1024] = "";
-                  int sel = ListView_GetSelectionMark(m_listview);
-                  ListView_GetItemText(m_listview,sel,COL_FILENAME,buf,sizeof(buf));
-
-                  WDL_String gs;
-                  gs.Set(m_curscanner_basepath[0].Get());
-                  gs.Append(PREF_DIRSTR);
-                  gs.Append(buf);
-
-                  if (!shellOpenUTF8(gs.Get(), NULL))
-                  {
-                    WDL_String em("Error opening: ");
-                    em.Append(gs.Get());
-                    LogMessage(em.Get());
-                    MessageBox(hwndDlg, em.Get(), "PathSync", MB_OK|MB_ICONWARNING);
-                  }
-                }
-                break;
-
                 case IDM_OPENREMOTE:
                 {
                   char buf[1024] = "";
@@ -1798,7 +1750,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   ListView_GetItemText(m_listview,sel,COL_FILENAME,buf,sizeof(buf));
 
                   WDL_String gs;
-                  gs.Set(m_curscanner_basepath[1].Get());
+                  gs.Set(m_curscanner_basepath[x == IDM_OPENREMOTE ? 1 : 0].Get());
                   gs.Append(PREF_DIRSTR);
                   gs.Append(buf);
 
@@ -2149,22 +2101,10 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
             else if (m_comparing == 11)
             {
-              // OPTIMIZED: Re-enable ListView redraw and refresh
-              SendMessage(m_listview, WM_SETREDRAW, TRUE, 0);
-              InvalidateRect(m_listview, NULL, TRUE);
-              
-              KillTimer(hwndDlg,32);
-              SetDlgItemText(hwndDlg,IDC_ANALYZE,"Analyze!");
-              SetDlgItemText(hwndDlg,IDC_STATUS,"Status: Done");
-              m_comparing=0;
-              enableAllButtonsInList(hwndDlg);
-              EnableWindow(GetDlgItem(hwndDlg,IDC_GO),1);     
+              finishAnalysis(hwndDlg, "Status: Done");
+              EnableWindow(GetDlgItem(hwndDlg,IDC_GO),1);
               calcStats(hwndDlg);
 
-              free_pattern_list(&m_include_files);
-              systray_mod(hwndDlg, 0, "PathSync");
-              g_lasttraypercent = -1;
-    
               finished = true;
               break; // exit loop
             }
