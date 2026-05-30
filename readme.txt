@@ -1,9 +1,23 @@
 PathSync Optimized
 ==================
-Current Version: v0.5.6
+Current Version: v0.5.7
 
 
 Version history:
+
+v0.5.7 (30/05/2026)
+  + Diff / Open Local / Open Remote now open files and folders with non-ASCII names (umlauts, accents, CJK) and report errors instead of failing silently
+  + Folder browser now returns correct paths for folders with non-ASCII names
+  + "Enable logging" off-state is now saved correctly (logging was wrongly re-enabled after restart)
+  + Read-only files and folders are now deleted/overwritten during sync instead of failing
+  + Copied files no longer receive a corrupted timestamp if the source time cannot be read
+  + "Time Remaining" no longer shows a bogus value when a file grows during sync
+  + Filename mask character classes (e.g. [a-z]) are now case-insensitive like the rest of the pattern
+  + Files with very long paths (over 2047 chars) are now copied/deleted correctly
+  + Settings (.pss) files without a version key are no longer falsely reported as load errors
+  + Fixed a system-tray menu handle leak (one per right-click)
+  + Faster analysis of large folders (linear list building instead of quadratic; fewer redundant system calls)
+  + Internal hardening — bounded string buffers, leak fixes on error paths, code cleanup
 
 v0.5.6 (29/05/2026)
   + Fixed potential out-of-bounds write when dropping a file with a very long path onto a path field

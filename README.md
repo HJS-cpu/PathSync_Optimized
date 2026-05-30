@@ -150,6 +150,20 @@ Based on the original PathSync source code by Cockos Incorporated.
 
 ## 📝 Changelog
 
+### v0.5.7 (30.05.2026)
+- Fixed: Diff / Open Local / Open Remote now open files and folders with non-ASCII names (umlauts, accents, CJK) and report errors instead of failing silently
+- Fixed: Folder browser now returns correct paths for folders with non-ASCII names
+- Fixed: "Enable logging" off-state is now saved correctly (logging was wrongly re-enabled after restart)
+- Fixed: Read-only files and folders are now deleted/overwritten during sync instead of failing
+- Fixed: Copied files no longer receive a corrupted timestamp if the source time cannot be read
+- Fixed: "Time Remaining" no longer shows a bogus value when a file grows during sync
+- Fixed: Filename mask character classes (e.g. [a-z]) are now case-insensitive like the rest of the pattern
+- Fixed: Files with very long paths (over 2047 chars) are now copied/deleted correctly
+- Fixed: Settings (.pss) files without a version key are no longer falsely reported as load errors
+- Fixed: System-tray context menu no longer leaks a menu handle on each right-click
+- Improved: Faster analysis of large folders (linear list building instead of quadratic; fewer redundant system calls)
+- Improved: Internal hardening — bounded string buffers, leak fixes on error paths, code cleanup
+
 ### v0.5.6 (29.05.2026)
 - Fixed: Potential out-of-bounds write when dropping a file with a very long path onto a path field
 - Fixed: System tray tooltip could read past its buffer (missing null-termination)
