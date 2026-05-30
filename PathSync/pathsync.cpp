@@ -550,13 +550,14 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 BOOL WINAPI diffToolProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void EnableOrDisableLoggingControls(HWND hwndDlg);
 
-void format_size_string(WDL_INT64 size, char *str)
+void format_size_string(WDL_INT64 size, char *str, size_t bufsz)
 {
-  if (size < 1024) sprintf(str,"%u bytes",(int)size);//BU 'bytes' is more self-explanatory than 'B'
-  else if (size < 1048576) sprintf(str,"%.1lf kB",(double) size / 1024.0);//BU kB is more correct
-  else if (size < 1073741824) sprintf(str,"%.1lf MB",(double) size / 1048576.0);
-  else if (size < 1099511627776i64) sprintf(str,"%.1lf GB",(double) size / 1073741824.0);
-  else sprintf(str,"%.1lf TB",(double) size / 1099511627776.0);
+  if (size < 1024) _snprintf(str,bufsz,"%d bytes",(int)size);//BU 'bytes' is more self-explanatory than 'B'
+  else if (size < 1048576) _snprintf(str,bufsz,"%.1lf kB",(double) size / 1024.0);//BU kB is more correct
+  else if (size < 1073741824) _snprintf(str,bufsz,"%.1lf MB",(double) size / 1048576.0);
+  else if (size < 1099511627776i64) _snprintf(str,bufsz,"%.1lf GB",(double) size / 1073741824.0);
+  else _snprintf(str,bufsz,"%.1lf TB",(double) size / 1099511627776.0);
+  if (bufsz) str[bufsz-1]=0;
 }
 
 FILE * g_log = 0;
@@ -641,32 +642,32 @@ void calcStats(HWND hwndDlg)
     }
   }
   char buf[1024];
-  strcpy(buf,"Synchronizing will ");
+  lstrcpyn(buf,"Synchronizing will ",sizeof(buf));
   if (totalfilescopy)
   {
     char tmp[128];
-    format_size_string(totalbytescopy,tmp);
+    format_size_string(totalbytescopy,tmp,sizeof(tmp));
     _snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),"copy %s in %d file%s",tmp,totalfilescopy,totalfilescopy==1?"":"s");
     buf[sizeof(buf)-1]=0;
   }
   if (totalfilesdelete)
   {
-    if (totalfilescopy) strcat(buf,", and ");
+    if (totalfilescopy) { _snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),"%s",", and "); buf[sizeof(buf)-1]=0; }
     _snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),"delete %d file%s",totalfilesdelete,totalfilesdelete==1?"":"s");
     buf[sizeof(buf)-1]=0;
   }
   
   if (!totalfilesdelete && !totalfilescopy)
   {
-    strcat(buf,"not perform any actions");
+    _snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),"%s","not perform any actions"); buf[sizeof(buf)-1]=0;
     EnableWindow(GetDlgItem(hwndDlg,IDC_GO),0);
   }
   else EnableWindow(GetDlgItem(hwndDlg,IDC_GO),1);
 
-  strcat(buf, ".");//BU added
+  _snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),"%s","."); buf[sizeof(buf)-1]=0;//BU added
   LogMessage(buf);
 
-  strcat(buf," (Right click on items to change their actions.)");//BU
+  _snprintf(buf+strlen(buf),sizeof(buf)-strlen(buf),"%s"," (Right click on items to change their actions.)"); buf[sizeof(buf)-1]=0;//BU
   SetDlgItemText(hwndDlg,IDC_STATS,buf);
   m_total_copy_size=totalbytescopy;
 }
@@ -1994,7 +1995,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     {
                       // no local size
                       char tmp[1024];
-                      format_size_string((*p)->fileSize, tmp);//BU
+                      format_size_string((*p)->fileSize, tmp, sizeof(tmp));//BU
                       ListView_SetItemText(m_listview,x,COL_REMOTESIZE,tmp);//BU
                     }
                   }
@@ -2066,10 +2067,11 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                       }
                     }
                     char buf[512];
-                    if (sizedesc && datedesc) 
-                      sprintf(buf,"%s, %s",datedesc,sizedesc);
+                    if (sizedesc && datedesc)
+                      _snprintf(buf,sizeof(buf),"%s, %s",datedesc,sizedesc);
                     else
-                      strcpy(buf,datedesc?datedesc:sizedesc);
+                      _snprintf(buf,sizeof(buf),"%s",datedesc?datedesc:sizedesc);
+                    buf[sizeof(buf)-1]=0;
 
                     ListView_SetItemText(m_listview,insertpos,COL_STATUS,buf);
 
@@ -2085,9 +2087,9 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                       ListView_SetItemText(m_listview,insertpos,COL_ACTION,
                             dateMatch ? ((*p)->fileSize > (*res)->fileSize ? ACTION_RECV:ACTION_SEND) : 
                                          fta > ftb ? ACTION_RECV:ACTION_SEND);
-                    char tmp[1024]; format_size_string((*res)->fileSize, tmp);//BU
+                    char tmp[1024]; format_size_string((*res)->fileSize, tmp, sizeof(tmp));//BU
                     ListView_SetItemText(m_listview,insertpos,COL_LOCALSIZE,tmp);//BU local size
-                    format_size_string((*p)->fileSize, tmp);//BU
+                    format_size_string((*p)->fileSize, tmp, sizeof(tmp));//BU
                     ListView_SetItemText(m_listview,insertpos,COL_REMOTESIZE,tmp);//BU remote size
                   }
                 }
@@ -2131,7 +2133,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     // AD: don't set size value for folders
                     if (!isDirectory(lvi.pszText))
                     {
-                      char tmp[1024]; format_size_string((*p)->fileSize, tmp);//BU
+                      char tmp[1024]; format_size_string((*p)->fileSize, tmp, sizeof(tmp));//BU
                       ListView_SetItemText(m_listview,x,COL_LOCALSIZE,tmp);//local size only BU
                     }
                   }
@@ -2503,9 +2505,9 @@ class fileCopier
         {
           char text[512];
           char tmp1[128],tmp2[128],tmp3[128];
-          format_size_string(m_filepos,tmp1);
-          format_size_string(m_filesize,tmp2);
-          format_size_string((m_filepos * 1000)/tm,tmp3);
+          format_size_string(m_filepos,tmp1,sizeof(tmp1));
+          format_size_string(m_filesize,tmp2,sizeof(tmp2));
+          format_size_string((m_filepos * 1000)/tm,tmp3,sizeof(tmp3));
 
           _snprintf(text,sizeof(text),"%d%% - %s/%s @ %s/s",v/100,tmp1,tmp2,tmp3);
           text[sizeof(text)-1]=0;
@@ -2574,8 +2576,8 @@ class fileCopier
           unsigned int tm=max(now-m_stt, 1);
           char tmp2[128],tmp3[128];
             
-          format_size_string(m_filesize,tmp2);
-          format_size_string((m_filepos * 1000)/tm,tmp3);
+          format_size_string(m_filesize,tmp2,sizeof(tmp2));
+          format_size_string((m_filepos * 1000)/tm,tmp3,sizeof(tmp3));
           _snprintf(text,sizeof(text),"%s @ %s/s %s", tmp2, tmp3, m_fulldestfn.Get());
           text[sizeof(text)-1]=0;
           LogMessage(text);
@@ -2631,9 +2633,9 @@ void updateXferStatus(HWND hwndDlg)
 
   SendDlgItemMessage(hwndDlg,IDC_TOTALPROGRESS,PBM_SETPOS,v,0);
   char tmp1[128],tmp2[128],tmp3[128];
-  format_size_string(m_copy_bytestotalsofar,tmp1);
-  format_size_string(m_total_copy_size,tmp2);
-  format_size_string((m_copy_bytestotalsofar * 1000) / t,tmp3);
+  format_size_string(m_copy_bytestotalsofar,tmp1,sizeof(tmp1));
+  format_size_string(m_total_copy_size,tmp2,sizeof(tmp2));
+  format_size_string((m_copy_bytestotalsofar * 1000) / t,tmp3,sizeof(tmp3));
 
   _snprintf(buf,sizeof(buf),"%d%% - %d file%s/folder%s (%s/%s) copied at %s/s, %d file%s/folder%s deleted.\r\nElapsed Time: %d:%02d, Time Remaining: %d:%02d",v/100,
     m_copy_files,m_copy_files==1?"":"s",m_copy_files==1?"":"s",
@@ -2663,8 +2665,8 @@ void LogEndSyncMessage()
     unsigned int t = GetTickCount() - m_copy_starttime;
     char tmp1[128], tmp2[128];
 
-    format_size_string(m_total_copy_size, tmp1);
-    format_size_string(t ? (m_total_copy_size * 1000) / t : 0, tmp2);
+    format_size_string(m_total_copy_size, tmp1, sizeof(tmp1));
+    format_size_string(t ? (m_total_copy_size * 1000) / t : 0, tmp2, sizeof(tmp2));
 
     _snprintf(buf, sizeof(buf), "%d file%s copied (%s @ %s/s), %d file%s deleted. Elapsed Time: %d:%02d",
         m_copy_files,
