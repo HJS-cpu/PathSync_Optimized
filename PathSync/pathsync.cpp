@@ -847,7 +847,9 @@ int load_settings(HWND hwndDlg, char *sec, char *fn) // return version
   CheckDlgButton(hwndDlg,IDC_IGNORE_DATE,(ignflags&16)?BST_INDETERMINATE : ((ignflags&2)?BST_CHECKED:BST_UNCHECKED));
   CheckDlgButton(hwndDlg,IDC_IGNORE_MISSLOCAL,(ignflags&4)?BST_CHECKED:BST_UNCHECKED);
   CheckDlgButton(hwndDlg,IDC_IGNORE_MISSREMOTE,(ignflags&8)?BST_CHECKED:BST_UNCHECKED);
-  SendDlgItemMessage(hwndDlg,IDC_DEFBEHAVIOR,CB_SETCURSEL,(WPARAM)GetPrivateProfileInt(sec,"defbeh",0,fn),0);
+  int defbeh = GetPrivateProfileInt(sec,"defbeh",0,fn);
+  if (defbeh < 0 || defbeh >= (int)(sizeof(g_syncactions)/sizeof(g_syncactions[0]))) defbeh = 0; // clamp stale/corrupt index
+  SendDlgItemMessage(hwndDlg,IDC_DEFBEHAVIOR,CB_SETCURSEL,(WPARAM)defbeh,0);
   GetPrivateProfileString(sec,"logpath","",path,sizeof(path),fn);
   int syncfolders=GetPrivateProfileInt(sec,"syncfolders",1,fn);
   CheckDlgButton(hwndDlg,IDC_SYNC_FOLDERS,syncfolders?BST_CHECKED:BST_UNCHECKED);
@@ -870,7 +872,13 @@ int load_settings(HWND hwndDlg, char *sec, char *fn) // return version
   g_throttle=GetPrivateProfileInt(sec,"throttle",0,fn);
   g_throttlespd=GetPrivateProfileInt(sec,"throttlespd",1024,fn);
 
-  return GetPrivateProfileInt(sec,"pssversion",0,fn);
+  int ver = GetPrivateProfileInt(sec,"pssversion",0,fn);
+  if (ver > 0) return ver;
+  // Accept an older/hand-edited settings file that lacks the pssversion key as long as the section
+  // actually contains a path1 entry, so a valid .pss isn't falsely reported as a load error.
+  char probe[8];
+  GetPrivateProfileString(sec, "path1", "\x01", probe, sizeof(probe), fn);
+  return strcmp(probe, "\x01") ? 1 : 0;
 }
 
 
@@ -1421,6 +1429,7 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
               LogMessage(msg.Get());
               // AD: fixed bug, button text would stay as 'Stop...'.
               SetDlgItemText(hwndDlg,IDC_ANALYZE,"Analyze!");
+              free_pattern_list(&m_include_files); // don't leak parsed patterns on error
             }
             else if (m_curscanner[1].First(m_curscanner_basepath[1].Get()))
             {
@@ -1433,6 +1442,8 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
               LogMessage(msg.Get());
               // AD: fixed bug, button text would stay as 'Stop...'.
               SetDlgItemText(hwndDlg,IDC_ANALYZE,"Analyze!");
+              m_curscanner[0].Close(); // local opened OK but remote failed: release its search handle
+              free_pattern_list(&m_include_files); // don't leak parsed patterns on error
             }
             else
             {
@@ -2329,7 +2340,7 @@ class fileCopier
       m_stt=GetTickCount();
       m_nud=0;
     }
-    int openFiles(char *src, char *dest, HWND hwndParent, char *relfn) // returns 1 on error
+    int openFiles(char *src, char *dest, HWND hwndParent, const char *relfn) // returns 1 on error
     {
       m_fullsrcfn.Set(src);
       m_fulldestfn.Set(dest);
@@ -2354,7 +2365,17 @@ class fileCopier
         return -1;
       }
 
-      createdir(dest);      
+      // Check directory creation so a missing/denied parent is reported specifically instead of
+      // surfacing later as a generic 'Error opening tmpdest'. m_srcFile is freed by the destructor
+      // when the caller deletes this fileCopier on the -1 return (matches the tmpdest error path).
+      if (createdir(dest))
+      {
+        WDL_String tmp("Error creating destination directory for: ");
+        tmp.Append(relfn);
+        LogMessage(tmp.Get());
+        SendDlgItemMessage(hwndParent,IDC_LIST1,LB_ADDSTRING,0,(LPARAM)tmp.Get());
+        return -1;
+      }
 
       // OPTIMIZED: Long path support for destination
       WDL_String destLong;
@@ -2773,8 +2794,16 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
               char status[256];
               char action[256];
-              char filename[2048];
-              ListView_GetItemText(m_listview,m_copy_entrypos,0,filename,sizeof(filename));
+              // Use the authoritative full-length UTF-8 relative name from m_listview_recs (via the
+              // item's lParam) instead of a ListView_GetItemText copy that truncates at 2047 bytes and
+              // would defeat long-path support during the actual copy/delete.
+              LVITEM lvfn = { LVIF_PARAM, m_copy_entrypos };
+              ListView_GetItem(m_listview, &lvfn);
+              int recidx = (int)lvfn.lParam;
+              dirItem *di_l = m_listview_recs.Get(recidx);
+              dirItem *di_r = m_listview_recs.Get(recidx + 1);
+              const char *filename = di_l ? di_l->relativeFileName.Get()
+                                          : (di_r ? di_r->relativeFileName.Get() : "");
               ListView_GetItemText(m_listview,m_copy_entrypos,1,status,sizeof(status));
               ListView_GetItemText(m_listview,m_copy_entrypos,2,action,sizeof(action));
 
