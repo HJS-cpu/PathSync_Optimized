@@ -335,17 +335,21 @@ int filenameCompareFunction(dirItem **a, dirItem **b)
   const char * pb = (*b)->relativeFileName.Get();
 
   int result = stricmp(pa,pb);
-  
+
   if (result != 0)
   {
     // AD: Ensure that parent directories sort after the files
     // and subdirectories within them. This avoids problems when
     // deleting parent directories.
-    if (isDirectory(pa) && !strnicmp(pb, pa, strlen(pa))) // JF: simplified logic and made better case insensitive
+    // OPTIMIZED: compute each length once (called O(n log n) times by qsort/bsearch).
+    size_t la = strlen(pa), lb = strlen(pb);
+    bool aDir = la > 0 && (pa[la-1] == '\\' || pa[la-1] == '/');
+    bool bDir = lb > 0 && (pb[lb-1] == '\\' || pb[lb-1] == '/');
+    if (aDir && !strnicmp(pb, pa, la)) // JF: simplified logic and made better case insensitive
     {
       result = 1;
     }
-    else if (isDirectory(pb) && !strnicmp(pa, pb, strlen(pb)))
+    else if (bDir && !strnicmp(pa, pb, lb))
     {
       result = -1;
     }
@@ -2019,7 +2023,9 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   if (!sizeMatch || !dateMatch)
                   {
                     int x=ListView_GetItemCount(m_listview);
-                    int insertpos=m_comparing_pos2++;
+                    // Append at the tail (O(1)); front-inserting here was O(n^2) and is
+                    // pointless because IDC_GO re-sorts the list before execution.
+                    int insertpos=x;
                     LVITEM lvi={LVIF_PARAM|LVIF_TEXT,insertpos};
                     lvi.pszText = (*p)->relativeFileName.Get();
                     lvi.lParam = m_listview_recs.GetSize();
@@ -2307,6 +2313,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 //////////// file copying code, eh
 
 int m_copy_entrypos;
+int m_copy_itemcount;
 int m_copy_done;
 int m_copy_deletes,m_copy_files;
 unsigned int m_copy_starttime;
@@ -2686,6 +2693,8 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
       m_copy_entrypos=-1;
       m_copy_done=0;
       m_copy_bytestotalsofar=0;
+      // OPTIMIZED: list is fixed during the copy; cache the count instead of an LVM_GETITEMCOUNT per item
+      m_copy_itemcount=ListView_GetItemCount(m_listview);
       SendDlgItemMessage(hwndDlg,IDC_TOTALPROGRESS,PBM_SETRANGE,0,MAKELPARAM(0,10000));
       SendDlgItemMessage(hwndDlg,IDC_TOTALPROGRESS,PBM_SETPOS,0,0);
       SetTimer(hwndDlg,60,50,NULL);
@@ -2743,7 +2752,7 @@ BOOL WINAPI copyFilesProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
             m_copy_entrypos++;
             m_next_statusupdate=0;
 
-            if (m_copy_entrypos >= ListView_GetItemCount(m_listview))
+            if (m_copy_entrypos >= m_copy_itemcount)
             {
               updateXferStatus(hwndDlg);
               SetDlgItemText(hwndDlg,IDC_SRC,"");
