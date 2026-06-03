@@ -20,21 +20,45 @@ if exist "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Bui
 
 echo === Compiling resources ===
 rc /fo build\pathsync.res PathSync\res.rc
+if errorlevel 1 (
+    echo FAILED: resource compilation
+    exit /b 1
+)
 
 echo === Compiling pathsync.cpp ===
 cl /c /O2 /EHsc /DNDEBUG /I. /Fobuild\pathsync.obj PathSync\pathsync.cpp
+if errorlevel 1 (
+    echo FAILED: compiling pathsync.cpp
+    exit /b 1
+)
 
 echo === Compiling fnmatch.cpp ===
 cl /c /O2 /EHsc /DNDEBUG /I. /Fobuild\fnmatch.obj PathSync\fnmatch.cpp
+if errorlevel 1 (
+    echo FAILED: compiling fnmatch.cpp
+    exit /b 1
+)
 
 echo === Compiling wndsize.cpp ===
 cl /c /O2 /EHsc /DNDEBUG /I. /Fobuild\wndsize.obj WDL\wingui\wndsize.cpp
+if errorlevel 1 (
+    echo FAILED: compiling wndsize.cpp
+    exit /b 1
+)
 
 echo === Compiling win32_utf8.c ===
 cl /c /O2 /DNDEBUG /I. /Fobuild\win32_utf8.obj WDL\win32_utf8.c
+if errorlevel 1 (
+    echo FAILED: compiling win32_utf8.c
+    exit /b 1
+)
 
 echo === Linking ===
 link /OUT:build\PathSync.exe /SUBSYSTEM:WINDOWS build\pathsync.obj build\fnmatch.obj build\wndsize.obj build\win32_utf8.obj build\pathsync.res kernel32.lib user32.lib gdi32.lib comctl32.lib comdlg32.lib shell32.lib ole32.lib advapi32.lib
+if errorlevel 1 (
+    echo FAILED: linking PathSync.exe ^(is a running instance locking the file?^)
+    exit /b 1
+)
 
 echo === Build complete ===
 if exist "build\PathSync.exe" (
@@ -42,4 +66,5 @@ if exist "build\PathSync.exe" (
     dir build\PathSync.exe
 ) else (
     echo FAILED: PathSync.exe was not created
+    exit /b 1
 )

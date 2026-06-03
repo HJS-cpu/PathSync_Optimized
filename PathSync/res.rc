@@ -181,6 +181,9 @@ BEGIN
         MENUITEM "Diff...",                     IDM_DIFF
         MENUITEM "Open Local...",               IDM_OPENLOCAL
         MENUITEM "Open Remote...",              IDM_OPENREMOTE
+        MENUITEM SEPARATOR
+        MENUITEM "Show Local in Explorer",      IDM_SHOWLOCAL
+        MENUITEM "Show Remote in Explorer",     IDM_SHOWREMOTE
     END
 END
 

@@ -1,4 +1,4 @@
-#define PATHSYNC_VER "v0.5.7 Optimized"
+#define PATHSYNC_VER "v0.5.8 Optimized"
 
 /*
     PathSync - pathsync.cpp
@@ -95,7 +95,11 @@ static BOOL shellOpenUTF8(const char *file, const char *params)
   if (wfile)
   {
     SHELLEXECUTEINFOW sei = { sizeof(sei) };
-    sei.fMask = 0;
+    /* SEE_MASK_NOASYNC: finish the DDE conversation synchronously before returning.
+       Without it, DDE-activated apps (WinAmp, etc.) don't reliably receive the open
+       command from this context-menu call path, so the running instance ignores the
+       file and only a stale fallback instance launches once the app is closed. */
+    sei.fMask = SEE_MASK_NOASYNC;
     sei.nShow = SW_SHOWNORMAL;
     sei.lpVerb = L"open";
     sei.lpFile = wfile;
@@ -1627,11 +1631,13 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 {
                   ::EnableMenuItem(h2, IDM_DIFF, MF_GRAYED);
                   ::EnableMenuItem(h2, IDM_OPENREMOTE, MF_GRAYED);
+                  ::EnableMenuItem(h2, IDM_SHOWREMOTE, MF_GRAYED);
                 }
                 else if (remoteonly)
                 {
                   ::EnableMenuItem(h2, IDM_DIFF, MF_GRAYED);
                   ::EnableMenuItem(h2, IDM_OPENLOCAL, MF_GRAYED);
+                  ::EnableMenuItem(h2, IDM_SHOWLOCAL, MF_GRAYED);
                 }
               }
               else
@@ -1639,6 +1645,8 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 ::EnableMenuItem(h2, IDM_DIFF, MF_GRAYED);
                 ::EnableMenuItem(h2, IDM_OPENLOCAL, MF_GRAYED);
                 ::EnableMenuItem(h2, IDM_OPENREMOTE, MF_GRAYED);
+                ::EnableMenuItem(h2, IDM_SHOWLOCAL, MF_GRAYED);
+                ::EnableMenuItem(h2, IDM_SHOWREMOTE, MF_GRAYED);
               }
 
               int do_action_change=0;
@@ -1757,6 +1765,34 @@ BOOL WINAPI mainDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
                   if (!shellOpenUTF8(gs.Get(), NULL))
                   {
                     WDL_String em("Error opening: ");
+                    em.Append(gs.Get());
+                    LogMessage(em.Get());
+                    MessageBox(hwndDlg, em.Get(), "PathSync", MB_OK|MB_ICONWARNING);
+                  }
+                }
+                break;
+
+                case IDM_SHOWLOCAL:
+                case IDM_SHOWREMOTE:
+                {
+                  char buf[1024] = "";
+                  int sel = ListView_GetSelectionMark(m_listview);
+                  ListView_GetItemText(m_listview,sel,COL_FILENAME,buf,sizeof(buf));
+
+                  WDL_String gs;
+                  gs.Set(m_curscanner_basepath[x == IDM_SHOWREMOTE ? 1 : 0].Get());
+                  gs.Append(PREF_DIRSTR);
+                  gs.Append(buf);
+
+                  // Open the containing folder in Explorer with the item selected
+                  // (explorer.exe /select,"<full path>").
+                  WDL_String params("/select,\"");
+                  params.Append(gs.Get());
+                  params.Append("\"");
+
+                  if (!shellOpenUTF8("explorer.exe", params.Get()))
+                  {
+                    WDL_String em("Error showing in Explorer: ");
                     em.Append(gs.Get());
                     LogMessage(em.Get());
                     MessageBox(hwndDlg, em.Get(), "PathSync", MB_OK|MB_ICONWARNING);

@@ -150,6 +150,10 @@ Based on the original PathSync source code by Cockos Incorporated.
 
 ## 📝 Changelog
 
+### v0.5.8 (03.06.2026)
+- Added: "Show Local in Explorer" / "Show Remote in Explorer" context-menu entries — open the containing folder with the file pre-selected
+- Fixed: Open Local / Open Remote / Diff now hand the file to an already-running DDE-based app (e.g. WinAmp) immediately, instead of doing nothing until the app is closed (and then launching a stray instance)
+
 ### v0.5.7 (30.05.2026)
 - Fixed: Diff / Open Local / Open Remote now open files and folders with non-ASCII names (umlauts, accents, CJK) and report errors instead of failing silently
 - Fixed: Folder browser now returns correct paths for folders with non-ASCII names

@@ -1,9 +1,13 @@
 PathSync Optimized
 ==================
-Current Version: v0.5.7
+Current Version: v0.5.8
 
 
 Version history:
+
+v0.5.8 (03/06/2026)
+  + New "Show Local in Explorer" / "Show Remote in Explorer" context-menu entries — open the containing folder with the file pre-selected
+  + Open Local / Open Remote / Diff now hand the file to an already-running DDE app (e.g. WinAmp) immediately, instead of doing nothing until the app is closed
 
 v0.5.7 (30/05/2026)
   + Diff / Open Local / Open Remote now open files and folders with non-ASCII names (umlauts, accents, CJK) and report errors instead of failing silently

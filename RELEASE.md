@@ -5,22 +5,12 @@
 | **PathSync-Portable.zip** | Standalone EXE — no installation needed, just extract and run |
 | **PathSync-Installer.zip** | NSIS setup with Start Menu shortcut and uninstaller |
 
-### What's New in v0.5.7
+### What's New in v0.5.8
 
-Code-audit hardening release — correctness, Unicode and performance fixes from a systematic review.
+Usability release — open files reliably in an already-running app, and jump straight to any item in Explorer.
 
-- **Fixed:** Diff / Open Local / Open Remote now open files and folders with non-ASCII names (umlauts, accents, CJK) correctly, and report an error instead of failing silently.
-- **Fixed:** The folder browser now returns correct paths for folders with non-ASCII names.
-- **Fixed:** The "Enable logging" off-state is now saved correctly (logging was wrongly re-enabled after restart).
-- **Fixed:** Read-only files and folders are now deleted/overwritten during sync instead of failing with an access error.
-- **Fixed:** Copied files no longer receive a corrupted timestamp if the source time cannot be read (prevented needless re-copies).
-- **Fixed:** "Time Remaining" no longer shows a bogus value when a file grows during synchronization.
-- **Fixed:** Filename-mask character classes (e.g. `[a-z]`) are now case-insensitive, consistent with the rest of the pattern matching.
-- **Fixed:** Files with very long relative paths (over 2047 characters) are now copied/deleted correctly.
-- **Fixed:** Settings (.pss) files without a version key are no longer falsely reported as load errors.
-- **Fixed:** The system-tray context menu no longer leaks a menu handle on each right-click.
-- **Improved:** Much faster analysis of large folders (linear list building instead of quadratic; fewer redundant system calls).
-- **Improved:** Internal hardening — bounded string buffers, resource-leak fixes on error paths, and code cleanup.
+- **Added:** New context-menu entries "Show Local in Explorer" and "Show Remote in Explorer" — open the containing folder with the file pre-selected, instead of hunting for the folder entry in the list.
+- **Fixed:** Open Local / Open Remote / Diff now hand the file to an already-running DDE-based application (e.g. WinAmp) immediately, instead of doing nothing until that application is closed and then launching a stray second instance.
 
 ### Key Features
 

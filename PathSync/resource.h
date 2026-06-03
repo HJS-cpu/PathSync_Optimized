@@ -64,13 +64,15 @@
 #define IDM_DIFF                        40010
 #define IDM_WEBSITE                     40012
 #define IDC_SETCOMPARE                  40011
+#define IDM_SHOWLOCAL                   40013
+#define IDM_SHOWREMOTE                  40014
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        110
-#define _APS_NEXT_COMMAND_VALUE         40013
+#define _APS_NEXT_COMMAND_VALUE         40015
 #define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
