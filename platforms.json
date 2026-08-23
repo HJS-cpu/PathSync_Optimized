@@ -8,11 +8,11 @@
     "mirror_hint": ""
   },
   "github": {
-    "badge_build": "[![Build Status](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml/badge.svg)](https://github.com/HJS-cpu/PathSync_Optimized/actions/workflows/build-windows.yml)",
-    "badge_version": "[![Latest Release](https://img.shields.io/github/v/release/HJS-cpu/PathSync_Optimized)](https://github.com/HJS-cpu/PathSync_Optimized/releases)",
-    "releases_url": "https://github.com/HJS-cpu/PathSync_Optimized/releases",
+    "badge_build": "[![Build Status](https://github.com/HJS-Lab/PathSync_Optimized/actions/workflows/build-windows.yml/badge.svg)](https://github.com/HJS-Lab/PathSync_Optimized/actions/workflows/build-windows.yml)",
+    "badge_version": "[![Latest Release](https://img.shields.io/github/v/release/HJS-Lab/PathSync_Optimized)](https://github.com/HJS-Lab/PathSync_Optimized/releases)",
+    "releases_url": "https://github.com/HJS-Lab/PathSync_Optimized/releases",
     "ci_name": "Actions",
-    "ci_url": "https://github.com/HJS-cpu/PathSync_Optimized/actions",
+    "ci_url": "https://github.com/HJS-Lab/PathSync_Optimized/actions",
     "mirror_hint": "> **Note:** This is a mirror. The primary repository is on [GitLab](https://gitlab.com/HJS-cpu/pathsync-optimized)."
   }
 }

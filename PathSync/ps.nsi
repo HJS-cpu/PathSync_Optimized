@@ -15,7 +15,7 @@ Unicode True
 
 !define PRODUCT_NAME "PathSync Optimized"
 !define PRODUCT_PUBLISHER "HJS"
-!define PRODUCT_WEB_SITE "https://github.com/HJS-cpu/PathSync_Optimized"
+!define PRODUCT_WEB_SITE "https://github.com/HJS-Lab/PathSync_Optimized"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
 SetCompressor lzma

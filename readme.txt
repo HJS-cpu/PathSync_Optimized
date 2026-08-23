@@ -68,5 +68,5 @@ Contact Info
 ------------
 Web: https://hjs.page.gd/pso/
 GitLab: https://gitlab.com/HJS-cpu/pathsync-optimized
-GitHub: https://github.com/HJS-cpu/PathSync_Optimized
+GitHub: https://github.com/HJS-Lab/PathSync_Optimized
 E-Mail: pathsync@gmx.org
