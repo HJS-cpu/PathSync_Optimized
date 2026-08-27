@@ -28,10 +28,10 @@ Usability release — open files reliably in an already-running app, and jump st
 
 ### Links
 
-- [Website](https://hjs.page.gd/pso/)
-- [Source Code](https://gitlab.com/HJS-cpu/pathsync-optimized)
-- [All Releases](https://gitlab.com/HJS-cpu/pathsync-optimized/-/releases)
+- [Website](https://hjslab.de/pso/)
+- [Source Code](https://gitlab.com/HJS-Lab/pathsync-optimized)
+- [All Releases](https://gitlab.com/HJS-Lab/pathsync-optimized/-/releases)
 
 ### License
 
-GNU General Public License v2.0 — see [license.txt](https://gitlab.com/HJS-cpu/pathsync-optimized/-/blob/main/license.txt) for details.
+GNU General Public License v2.0 — see [license.txt](https://gitlab.com/HJS-Lab/pathsync-optimized/-/blob/main/license.txt) for details.

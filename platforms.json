@@ -1,10 +1,10 @@
 {
   "gitlab": {
-    "badge_build": "[![Build Status](https://gitlab.com/HJS-cpu/pathsync-optimized/badges/main/pipeline.svg)](https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines)",
-    "badge_version": "[![Latest Release](https://gitlab.com/HJS-cpu/pathsync-optimized/-/badges/release.svg)](https://gitlab.com/HJS-cpu/pathsync-optimized/-/releases)",
-    "releases_url": "https://gitlab.com/HJS-cpu/pathsync-optimized/-/releases",
+    "badge_build": "[![Build Status](https://gitlab.com/HJS-Lab/pathsync-optimized/badges/main/pipeline.svg)](https://gitlab.com/HJS-Lab/pathsync-optimized/-/pipelines)",
+    "badge_version": "[![Latest Release](https://gitlab.com/HJS-Lab/pathsync-optimized/-/badges/release.svg)](https://gitlab.com/HJS-Lab/pathsync-optimized/-/releases)",
+    "releases_url": "https://gitlab.com/HJS-Lab/pathsync-optimized/-/releases",
     "ci_name": "Pipelines",
-    "ci_url": "https://gitlab.com/HJS-cpu/pathsync-optimized/-/pipelines",
+    "ci_url": "https://gitlab.com/HJS-Lab/pathsync-optimized/-/pipelines",
     "mirror_hint": ""
   },
   "github": {
@@ -13,6 +13,6 @@
     "releases_url": "https://github.com/HJS-Lab/PathSync_Optimized/releases",
     "ci_name": "Actions",
     "ci_url": "https://github.com/HJS-Lab/PathSync_Optimized/actions",
-    "mirror_hint": "> **Note:** This is a mirror. The primary repository is on [GitLab](https://gitlab.com/HJS-cpu/pathsync-optimized)."
+    "mirror_hint": "> **Note:** This is a mirror. The primary repository is on [GitLab](https://gitlab.com/HJS-Lab/pathsync-optimized)."
   }
 }

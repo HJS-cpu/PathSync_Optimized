@@ -4,7 +4,7 @@
 
 {{BADGE_BUILD}}
 {{BADGE_VERSION}}
-[![Live Website](https://img.shields.io/badge/Live_Website-hjs.page.gd-brightgreen)](https://hjs.page.gd/pso/)
+[![Live Website](https://img.shields.io/badge/Live_Website-hjslab.de-brightgreen)](https://hjslab.de/pso/)
 
 A modernized and optimized fork of **PathSync**, the lightweight file synchronization tool originally developed by Cockos Incorporated.
 
@@ -41,7 +41,7 @@ A modernized and optimized fork of **PathSync**, the lightweight file synchroniz
 ## 📥 Download & Links
 
 ### 🌐 **Live Website**
-**[➡️ Visit Live Website](https://hjs.page.gd/pso/)**
+**[➡️ Visit Live Website](https://hjslab.de/pso/)**
 
 ### 💾 **Desktop Application**
 **[⬇️ Download Latest Release]({{RELEASES_URL}})**
